@@ -23,7 +23,8 @@ def to_point(geometry, frame_id, timestamp):
 
 def to_line_segment(geometry, frame_id, timestamp):
     # TODO: convert to ROS2 polygon
-    return 0
+    # TODO: Handle different type -> other publisher
+    return PointStamped()
 
 
 # TODO: Load from YAML / config
@@ -31,14 +32,16 @@ default_connection_uri = 'postgresql://postgres:postgres@localhost:5432/postgres
 
 # TODO: Idea: defined columns 'geometry', 'type', and 'frame_id' need to be present
 # query = "SELECT position AS geometry, ST_GeometryType(landmark.position) AS type, 'test_frame_id' AS frame_id FROM landmark;"
-# query = "SELECT ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)') AS geometry, ST_GeometryType(ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)')), 'test' AS frame_id;"
-query = "SELECT ST_MakePoint(75.15, 29.53, 1.0) AS geometry, ST_GeometryType(ST_MakePoint(75.15, 29.53, 1.0)) AS type, 'test' AS frame_id;"
+query0 = "SELECT ST_MakePoint(75.15, 29.53, 1.0) AS geometry, ST_GeometryType(ST_MakePoint(75.15, 29.53, 1.0)) AS type, 'test' AS frame_id;"
+query1 = "SELECT ST_MakePoint(10.15, 13.53, 0.0) AS geometry, ST_GeometryType(ST_MakePoint(10.15, 13.53, 0.0)) AS type, 'test' AS frame_id;"
+query2 = "SELECT ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)') AS geometry, ST_GeometryType(ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)')) AS type, 'test' AS frame_id;"
+queries = [query0, query1, query2]
 
 non_optional_columns = ['geometry', 'type', 'frame_id']
 
 # TODO: If timestamp is given -> use it, otherwise -> use get_clock().now()
 optional_columns = ['timestamp']
-type_converter = {'ST_Point': to_point, 'ST_LineSegment': to_line_segment}
+type_converter = {'ST_Point': to_point, 'ST_Polygon': to_line_segment}
 
 
 class PostGisPublisher(Node):
@@ -60,25 +63,26 @@ class PostGisPublisher(Node):
         self.timer_ = self.create_timer(timer_period, self.timer_callback)
 
     def timer_callback(self):
-        elements = self.session_.execute(text(query))
-        if not all(column in elements.keys() for column in non_optional_columns):
-            print('Missing one ore more non-optional column.')
-            return
-        elements = elements.all()
-        if not elements:
-            print('Query returned no data.')
-            return
-        now = self.get_clock().now()
+        for query in queries:
+            elements = self.session_.execute(text(query))
+            if not all(column in elements.keys() for column in non_optional_columns):
+                print('Missing one ore more non-optional column.')
+                return
+            elements = elements.all()
+            if not elements:
+                print('Query returned no data.')
+                return
+            now = self.get_clock().now()
 
-        for element in elements:
-            type = element.type
-            if not type in type_converter.keys():
-                print(
-                    f"Type: '{type}' is not supported. Supported: {type_converter.keys()}")
-                continue
-            ros_msg = type_converter[type](element.geometry, element.frame_id, now)
-            self.publisher_.publish(ros_msg)
-            #print(ros_msg)
+            for element in elements:
+                type = element.type
+                if not type in type_converter.keys():
+                    print(
+                        f"Type: '{type}' is not supported. Supported: {type_converter.keys()}")
+                    continue
+                ros_msg = type_converter[type](element.geometry, element.frame_id, now)
+                self.publisher_.publish(ros_msg)
+                #print(ros_msg)
 
 
 def main(args=None):
