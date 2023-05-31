@@ -30,7 +30,9 @@ def to_line_segment(geometry, frame_id, timestamp):
 default_connection_uri = 'postgresql://postgres:postgres@localhost:5432/postgres_alchemy_ait'
 
 # TODO: Idea: defined columns 'geometry', 'type', and 'frame_id' need to be present
-query = "SELECT position AS geometry, ST_GeometryType(landmark.position) AS type, 'test_frame_id' AS frame_id FROM landmark;"
+# query = "SELECT position AS geometry, ST_GeometryType(landmark.position) AS type, 'test_frame_id' AS frame_id FROM landmark;"
+# query = "SELECT ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)') AS geometry, ST_GeometryType(ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)')), 'test' AS frame_id;"
+query = "SELECT ST_MakePoint(75.15, 29.53, 1.0) AS geometry, ST_GeometryType(ST_MakePoint(75.15, 29.53, 1.0)) AS type, 'test' AS frame_id;"
 
 non_optional_columns = ['geometry', 'type', 'frame_id']
 
@@ -54,7 +56,7 @@ class PostGisPublisher(Node):
         print('Connected...')
         self.publisher_ = self.create_publisher(PointStamped, 'points', 10)
 
-        timer_period = 10.0  # seconds
+        timer_period = 1.0  # seconds
         self.timer_ = self.create_timer(timer_period, self.timer_callback)
 
     def timer_callback(self):
