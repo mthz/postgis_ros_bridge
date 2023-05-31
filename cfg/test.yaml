@@ -1,0 +1,43 @@
+postgis_ros_publisher:
+  ros__parameters:
+
+    publish:
+      - cfg_point
+      # - cfg_marker
+      # - cfg_pointcloud
+      # - cfg_pose 
+
+    cfg_default:
+      rate: 10.0
+
+    cfg_point: 
+      query: "SELECT position AS geometry, 'test_frame_id' AS frame_id FROM landmark;"
+      type: "Point3D" # Point2D PointCloud, Polygon Marker, Marker, Pose 
+      position: "asdf" # automatic with geometry 
+      frame_id: "asdf" # custom or via frame_id
+      topic: "point"
+
+
+    cfg_marker: 
+      query: "SELECT position AS geometry, 'test_frame_id' AS frame_id FROM landmark;"
+      type: "Marker"
+      position: "asdf" #automatic with geometry
+      orientation: "asdf" # autmatic with orientation (rpy) else 0
+      marker_type: "visualization_msgs::Marker::SPHERE" # marker_type or here | default sphere
+
+    cfg_pointcloud:
+      query: "SELECT position AS geometry FROM landmark;"
+      type: "PointCloud"
+      frame_id: "asdf" # custom
+      rate: 1.0
+
+    cfg_pose: 
+      query: "SELECT landmark.position AS geometry, landmark.orientation as orientation, 'test_frame_id' AS frame_id FROM landmark;"
+      type: "Pose"
+      position: "asdf" # geometry
+      orientation: "asdf" # orientation (xyz as rpy, which is as geometry)
+
+
+      # frame_id: "map" 
+      # rate: 10
+
