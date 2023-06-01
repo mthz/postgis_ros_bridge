@@ -56,6 +56,7 @@ class PostGisConverter:
         return (point.x, point.y, point.z)
     
 class Point3DQuery:
+    type = "Point3D"
     def __init__(self, node: Node, config: str):
 
         node.declare_parameters(
@@ -98,7 +99,9 @@ class Point3DQuery:
         return f"{self.__class__.__name__}: query: \"{self.query}\" topic: {self.topic}, frame_id: {self.frame_id}"
 
 
-class PointCloudQuery:
+class PointCloud2Query:
+    type = "PointCloud2"
+
     def __init__(self, node: Node, config: str):
 
         node.declare_parameters(
@@ -130,12 +133,11 @@ class PointCloudQuery:
     def __repr__(self):
         return f"{self.__class__.__name__}: query: \"{self.query}\" topic: {self.topic}, frame_id: {self.frame_id}"
     
+    def __str__(self):
+        return f"{self.__class__.__name__}: \n query: \"{self.query}\" \b topic: {self.topic}, \n frame_id: {self.frame_id}"
+    
 
-query_converter = {
-    'Point3D': Point3DQuery,
-    'PointCloud': PointCloudQuery
-    }
-
+query_converter = {q.type: q for q in [Point3DQuery, PointCloud2Query]}
 
 
 class PostGisPublisher(Node):
@@ -156,14 +158,15 @@ class PostGisPublisher(Node):
 
         for config in configurations:
             self.declare_parameter(f"{config}.type", rclpy.Parameter.Type.STRING)
-
-
             query_type = self.get_parameter(f"{config}.type").value
+            if not query_type in query_converter.keys():
+                raise ValueError(f"Type: '{query_type}' is not supported. Supported: {query_converter.keys()}")
+            
             query_node = query_converter[query_type](self, config)
             queries.append(query_node)
+            self.get_logger().info(str(query_node))
 
-        
-        print(queries)
+    
         self.queries = queries
       
         engine = create_engine(default_connection_uri)
