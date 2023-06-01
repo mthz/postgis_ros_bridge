@@ -4,7 +4,7 @@ postgis_ros_publisher:
     publish:
       - cfg_point
       # - cfg_marker
-      # - cfg_pointcloud
+      - cfg_pointcloud
       # - cfg_pose 
 
     cfg_default:
@@ -13,8 +13,7 @@ postgis_ros_publisher:
     cfg_point: 
       query: "SELECT position AS geometry, 'test_frame_id' AS frame_id FROM landmark;"
       type: "Point3D" # Point2D PointCloud, Polygon Marker, Marker, Pose 
-      position: "asdf" # automatic with geometry 
-      frame_id: "asdf" # custom or via frame_id
+      # frame_id: "asdf" # custom or via frame_id
       topic: "point"
 
 
@@ -28,7 +27,7 @@ postgis_ros_publisher:
     cfg_pointcloud:
       query: "SELECT position AS geometry FROM landmark;"
       type: "PointCloud"
-      frame_id: "asdf" # custom
+      frame_id: "test_frame_id" # custom
       rate: 1.0
 
     cfg_pose: 

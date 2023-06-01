@@ -5,7 +5,8 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Header
 from geometry_msgs.msg import Point, PointStamped
-
+from sensor_msgs.msg import PointCloud2, PointField
+from sensor_msgs_py import point_cloud2
 from shapely import wkb
 
 
@@ -44,25 +45,103 @@ non_optional_columns = ['geometry', 'type', 'frame_id']
 optional_columns = ['timestamp']
 type_converter = {'ST_Point': to_point, 'ST_Polygon': to_line_segment}
 
-
+class PostGisConverter:
+    @staticmethod
+    def to_point(geometry):
+        point = wkb.loads(geometry, hex=True)
+        return Point(x=point.x, y=point.y, z=point.z)
+    
+    def to_point_tuple(geometry):
+        point = wkb.loads(geometry, hex=True)
+        return (point.x, point.y, point.z)
+    
 class Point3DQuery:
-    def __init__(self, node, config):
-        node.declare_parameter(f"{config}.query", rclpy.Parameter.Type.STRING)
-        node.declare_parameter(f"{config}.topic", rclpy.Parameter.Type.STRING)
-        node.declare_parameter(f"{config}.frame_id", rclpy.Parameter.Type.STRING)
-        
-        self.query = node.get_parameter(f"{config}.query").value
+    def __init__(self, node: Node, config: str):
+
+        node.declare_parameters(
+            namespace="",
+            parameters=[
+                (f'{config}.query', ""),
+                (f'{config}.topic', "points"),
+                (f'{config}.frame_id', ""),
+                (f'{config}.rate', 10.0),
+            ])
+                
+        self.query = node.get_parameter(f'{config}.query').value
         self.topic = node.get_parameter(f"{config}.topic").value
         self.frame_id = node.get_parameter(f"{config}.frame_id").value
+        self.rate = node.get_parameter(f"{config}.rate").value
+
+        self.publisher_ = node.create_publisher(PointStamped, self.topic, 10)
+
+    def publish(self, result, timestamp):
+
+        for element in result:
+            # type = element.type
+            # if not type in type_converter.keys():
+            #     print(
+            #         f"Type: '{type}' is not supported. Supported: {type_converter.keys()}")
+            #     continue
+            type = 'ST_Point'
+
+            frame_id = element.frame_id if hasattr(element, "frame_id") else self.frame_id
+
+            point_stamped = PointStamped(
+                header=Header(frame_id=frame_id, stamp = timestamp.to_msg()),
+                point=PostGisConverter.to_point(element.geometry)
+            )
+            
+            self.publisher_.publish(point_stamped)
+
 
     def __repr__(self):
-        return f"Point3DQuery: query: \"{self.query}\" topic: {self.topic}, frame_id: {self.frame_id}"
+        return f"{self.__class__.__name__}: query: \"{self.query}\" topic: {self.topic}, frame_id: {self.frame_id}"
+
+
+class PointCloudQuery:
+    def __init__(self, node: Node, config: str):
+
+        node.declare_parameters(
+            namespace="",
+            parameters=[
+                (f'{config}.query', ""),
+                (f'{config}.topic', "points"),
+                (f'{config}.frame_id', ""),
+                (f'{config}.rate', 10.0),
+            ])
+                
+        self.query = node.get_parameter(f'{config}.query').value
+        self.topic = node.get_parameter(f"{config}.topic").value
+        self.frame_id = node.get_parameter(f"{config}.frame_id").value
+        self.rate = node.get_parameter(f"{config}.rate").value
+
+        self.publisher_ = node.create_publisher(PointCloud2, self.topic, 10)
+
+    def publish(self, result, timestamp):
+
+        pointcloud_msg = PointCloud2()
+
+        header = Header(frame_id=self.frame_id, stamp = timestamp.to_msg())
+        points = [PostGisConverter.to_point_tuple(element.geometry) for element in result]
+        pointcloud_msg = point_cloud2.create_cloud_xyz32(header, points)
+
+        self.publisher_.publish(pointcloud_msg)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}: query: \"{self.query}\" topic: {self.topic}, frame_id: {self.frame_id}"
     
+
+query_converter = {
+    'Point3D': Point3DQuery,
+    'PointCloud': PointCloudQuery
+    }
+
 
 
 class PostGisPublisher(Node):
     def __init__(self):
         super().__init__('postgis_ros_publisher')
+        # automatically_declare_parameters_from_overrides=True
         
         self.declare_parameters(
             namespace='',
@@ -74,11 +153,14 @@ class PostGisPublisher(Node):
         print(f"Publishing: {configurations}")
         queries = []
 
+
         for config in configurations:
             self.declare_parameter(f"{config}.type", rclpy.Parameter.Type.STRING)
+
+
             query_type = self.get_parameter(f"{config}.type").value
-            if query_type == "Point3D":
-                queries.append(Point3DQuery(self, config))
+            query_node = query_converter[query_type](self, config)
+            queries.append(query_node)
 
         
         print(queries)
@@ -94,7 +176,7 @@ class PostGisPublisher(Node):
         Session = sessionmaker(bind=engine)
         self.session_ = Session()
         print('Connected...')
-        self.publisher_ = self.create_publisher(PointStamped, 'points', 10)
+        
 
         timer_period = 1.0  # seconds
         self.timer_ = self.create_timer(timer_period, self.timer_callback)
@@ -116,16 +198,18 @@ class PostGisPublisher(Node):
                 return
             now = self.get_clock().now()
 
-            for element in elements:
-                # type = element.type
-                # if not type in type_converter.keys():
-                #     print(
-                #         f"Type: '{type}' is not supported. Supported: {type_converter.keys()}")
-                #     continue
-                type = 'ST_Point'
-                ros_msg = type_converter[type](element.geometry, element.frame_id, now)
-                self.publisher_.publish(ros_msg)
-                #print(ros_msg)
+            query.publish(elements, now)
+
+            # for element in elements:
+            #     # type = element.type
+            #     # if not type in type_converter.keys():
+            #     #     print(
+            #     #         f"Type: '{type}' is not supported. Supported: {type_converter.keys()}")
+            #     #     continue
+            #     type = 'ST_Point'
+            #     ros_msg = type_converter[type](element.geometry, element.frame_id, now)
+            #     self.publisher_.publish(ros_msg)
+            #     #print(ros_msg)
 
 
         # for query in queries:
