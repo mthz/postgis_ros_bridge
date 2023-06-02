@@ -10,17 +10,38 @@ from sensor_msgs_py import point_cloud2
 from shapely import wkb
 
 
-# TODO: Load from YAML / config
-default_connection_uri = (
-    "postgresql://postgres:postgres@localhost:5432/postgres_alchemy_ait"
-)
+class PostgreSQLConnection:
+    def __init__(self, node: Node):
+        ns = "postgresql"
+        node.declare_parameters(
+            namespace="",
+            parameters=[
+                (f"{ns}.user", "postgres"),
+                (f"{ns}.pass", "postgres"),
+                (f"{ns}.host", "localhost"),
+                (f"{ns}.port", 5432),
+                (f"{ns}.schema", "public"),
+            ],
+        )
 
-# TODO: Idea: defined columns 'geometry', 'type', and 'frame_id' need to be present
-# query = "SELECT position AS geometry, ST_GeometryType(landmark.position) AS type, 'test_frame_id' AS frame_id FROM landmark;"
-# query0 = "SELECT ST_MakePoint(75.15, 29.53, 1.0) AS geometry, ST_GeometryType(ST_MakePoint(75.15, 29.53, 1.0)) AS type, 'test' AS frame_id;"
-# query1 = "SELECT ST_MakePoint(10.15, 13.53, 0.0) AS geometry, ST_GeometryType(ST_MakePoint(10.15, 13.53, 0.0)) AS type, 'test' AS frame_id;"
-# query2 = "SELECT ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)') AS geometry, ST_GeometryType(ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)')) AS type, 'test' AS frame_id;"
-# queries = [query0, query1, query2]
+        user = node.get_parameter(f"{ns}.user").value
+        passwd = node.get_parameter(f"{ns}.pass").value
+        host = node.get_parameter(f"{ns}.host").value
+        port = node.get_parameter(f"{ns}.port").value
+        schema = node.get_parameter(f"{ns}.schema").value
+
+        connection_uri = f"postgresql://{user}:{passwd}@{host}:{port}/{schema}"
+        engine = create_engine(connection_uri)
+        try:
+            engine.connect()
+        except:
+            print(f"Could not connect to uri: {connection_uri}")
+            print(f"Check the postgresql section of the YAML file.")
+            exit()
+
+        Session = sessionmaker(bind=engine)
+        self.session = Session()
+        print("Connected...")
 
 
 class PostGisConverter:
@@ -57,17 +78,9 @@ class Point3DQuery:
 
     def publish(self, result, timestamp):
         for element in result:
-            # type = element.type
-            # if not type in type_converter.keys():
-            #     print(
-            #         f"Type: '{type}' is not supported. Supported: {type_converter.keys()}")
-            #     continue
-            type = "ST_Point"
-
             frame_id = (
                 element.frame_id if hasattr(element, "frame_id") else self.frame_id
             )
-
             point_stamped = PointStamped(
                 header=Header(frame_id=frame_id, stamp=timestamp.to_msg()),
                 point=PostGisConverter.to_point(element.geometry),
@@ -127,7 +140,10 @@ class PostGisPublisher(Node):
 
         # automatically_declare_parameters_from_overrides=True
         self.declare_parameters(
-            namespace="", parameters=[("publish", rclpy.Parameter.Type.STRING_ARRAY)]
+            namespace="",
+            parameters=[
+                ("publish", rclpy.Parameter.Type.STRING_ARRAY),
+            ],
         )
 
         configurations = self.get_parameter("publish").value
@@ -147,16 +163,7 @@ class PostGisPublisher(Node):
 
         self.queries = queries
 
-        engine = create_engine(default_connection_uri)
-        try:
-            engine.connect()
-        except:
-            print(f"Could not connect to schema: {default_connection_uri}")
-            return
-
-        Session = sessionmaker(bind=engine)
-        self.session_ = Session()
-        print("Connected...")
+        self.postgresql_connection = PostgreSQLConnection(self)
 
         # TODO: Timer per topic? Different update times?
         timer_period = 1.0  # seconds
@@ -164,7 +171,7 @@ class PostGisPublisher(Node):
 
     def timer_callback(self):
         for query in self.queries:
-            elements = self.session_.execute(text(query.query))
+            elements = self.postgresql_connection.session.execute(text(query.query))
             # if not all(column in elements.keys() for column in non_optional_columns):
             #     print('Missing one ore more non-optional column.')
             #     return

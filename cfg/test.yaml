@@ -1,7 +1,12 @@
 postgis_ros_publisher:
   ros__parameters:
 
-    postgresql_connection_uri: "postgresql://postgres:postgres@localhost:5432/postgres_alchemy_ait"
+    postgresql:
+      user: "postgres"
+      pass: "postgres" # TODO: Alternative way w/o need of storing password in plaintext
+      host: "localhost"
+      port: 5432
+      schema: "postgres_alchemy_ait"
 
     publish:
       - cfg_point
@@ -42,3 +47,8 @@ postgis_ros_publisher:
       # frame_id: "map" 
       # rate: 10
 
+
+
+# "SELECT ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)') AS geometry, ST_GeometryType(ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)')) AS type, 'test' AS frame_id;"
+# "SELECT ST_MakePoint(10.15, 13.53, 0.0) AS geometry, ST_GeometryType(ST_MakePoint(10.15, 13.53, 0.0)) AS type, 'test' AS frame_id;"
+# "SELECT ST_MakePoint(75.15, 29.53, 1.0) AS geometry, ST_GeometryType(ST_MakePoint(75.15, 29.53, 1.0)) AS type, 'test' AS frame_id;"
