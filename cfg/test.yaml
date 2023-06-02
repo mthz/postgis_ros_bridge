@@ -1,6 +1,8 @@
 postgis_ros_publisher:
   ros__parameters:
 
+    postgresql_connection_uri: "postgresql://postgres:postgres@localhost:5432/postgres_alchemy_ait"
+
     publish:
       - cfg_point
       # - cfg_marker

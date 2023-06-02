@@ -1,3 +1,5 @@
+test/postgres_server/*.tar
+
 # C
 ## Prerequisites
 *.d
