@@ -36,6 +36,7 @@ postgis_ros_publisher:
       query: "SELECT position AS geometry FROM landmark;"
       type: "PointCloud2"
       frame_id: "test_frame_id" # custom
+      topic: "pointcloud"
       rate: 1.0
 
     cfg_pose: 
