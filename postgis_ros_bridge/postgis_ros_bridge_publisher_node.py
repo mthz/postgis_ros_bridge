@@ -1,16 +1,25 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, Result
 from sqlalchemy.orm import sessionmaker
 
 import rclpy
+from builtin_interfaces.msg import Time
+from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from rclpy.node import Node
+from rclpy.publisher import  Publisher
+from rclpy.parameter import Parameter
 from std_msgs.msg import Header
 from geometry_msgs.msg import Point, PointStamped
 from sensor_msgs.msg import PointCloud2, PointField
 from sensor_msgs_py import point_cloud2
 from shapely import wkb
+from contextlib import AbstractContextManager
+from abc import ABC, abstractmethod
+from typing import Dict, Any, Iterable, Tuple
+from functools import partial
 
+# TODO: Context manager
 
-class PostgreSQLConnection:
+class PostgreSQLConnection(AbstractContextManager):
     def __init__(self, node: Node):
         ns = "postgresql"
         node.declare_parameters(
@@ -31,18 +40,104 @@ class PostgreSQLConnection:
         schema = node.get_parameter(f"{ns}.schema").value
 
         connection_uri = f"postgresql://{user}:{passwd}@{host}:{port}/{schema}"
-        engine = create_engine(connection_uri)
-        try:
-            engine.connect()
-        except:
-            print(f"Could not connect to uri: {connection_uri}")
-            print(f"Check the postgresql section of the YAML file.")
-            exit()
+        self.engine = create_engine(connection_uri, execution_options={'postgresql_readonly': True})
+        # try:
+        #     conn = self.engine.connect()
+        #     conn.execution_options(postgresql_readonly=True)
+        # except:
+        #     print(f"Could not connect to uri: {connection_uri}")
+        #     print(f"Check the postgresql section of the YAML file.")
+        #     exit()
 
-        Session = sessionmaker(bind=engine)
-        self.session = Session()
-        print("Connected...")
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self):
+        self.engine.dispose()
 
+
+class Query(AbstractContextManager):
+    def __init__(self, postgresql_conn: PostgreSQLConnection, query: str):
+        Session = sessionmaker(bind=postgresql_conn.engine)
+        self._session = Session()
+        self._query = text(query)
+        
+    def __enter__(self):
+        return self
+    
+    def __exit__(self):
+        self._session.close()
+
+    def get_results(self) -> Result:
+        return self._session.execute(self._query)
+    
+    # -> gets query as string
+    # -> iterable query result
+
+class QueryResultParser(ABC):
+
+    @abstractmethod
+    def declare_params(self) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
+        return []
+    
+
+    @abstractmethod
+    def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
+        return []
+
+    @abstractmethod
+    def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
+        return []
+    # abstract
+    # -> input iterable result
+    # -> factory for param type
+    #    maybe with python entrypoints (or for now dict to class)
+    #    params are passed in as dict
+
+
+# TODO: maybe as base for the nodes
+#class Process(query+parser):
+    # input query instance
+    # parser instance
+    # starts query(given connection) + returns dict or list of messages (to topic)
+    # produces messsage
+
+class PostGisConverter:
+    @staticmethod
+    def to_point(geometry):
+        point = wkb.loads(geometry, hex=True)
+        return Point(x=point.x, y=point.y, z=point.z)
+
+    def to_point_tuple(geometry):
+        point = wkb.loads(geometry, hex=True)
+        return (point.x, point.y, point.z)
+
+
+class PointResultParser(QueryResultParser):
+    TYPE = "Point3D"
+
+    def __init__(self):
+        pass
+    
+    def declare_params(self) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
+        return [
+            ('frame_id', '', ParameterDescriptor(name='frame_id', type=ParameterType.PARAMETER_STRING)),
+            ('topic', 'point', ParameterDescriptor(name='topic', type=ParameterType.PARAMETER_STRING))
+        ]
+
+
+    def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
+        self.frame_id = params['frame_id'].value
+        self.topic = params['topic'].value
+        return [(self.topic, PointStamped)]
+
+
+    def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
+        def get_frame_id(elem):
+            return self.frame_id if self.frame_id else elem.frame_id if hasattr(elem, 'frame_id') else 'map'
+        return ((self.topic, PointStamped(header=Header(frame_id=get_frame_id(element), stamp=time), point=PostGisConverter.to_point(element.geometry))) for element in result) 
+    
 
 class PostGisConverter:
     @staticmethod
@@ -130,8 +225,8 @@ class PointCloud2Query:
     def __str__(self):
         return f'{self.__class__.__name__}: \n query: "{self.query}" \b topic: {self.topic}, \n frame_id: {self.frame_id}'
 
-
-query_converter = {q.type: q for q in [Point3DQuery, PointCloud2Query]}
+#TODO: Maybe extension points
+query_converter: Dict[str, QueryResultParser] = {q.TYPE: q for q in [PointResultParser]}
 
 
 class PostGisPublisher(Node):
@@ -148,40 +243,44 @@ class PostGisPublisher(Node):
 
         configurations = self.get_parameter("publish").value
         print(f"Publishing: {configurations}")
-        queries = []
+        self.converter_pubs: Dict[str, Publisher] = dict()
+        self.postgresql_connection = PostgreSQLConnection(self)
 
         for config in configurations:
-            self.declare_parameter(f"{config}.type", rclpy.Parameter.Type.STRING)
+            self.declare_parameters(
+                namespace="",
+                parameters=[
+                    (f"{config}.query", rclpy.Parameter.Type.STRING),
+                    (f"{config}.rate", rclpy.Parameter.Type.DOUBLE),
+                    (f"{config}.type", rclpy.Parameter.Type.STRING)
+                ],
+            )
             query_type = self.get_parameter(f"{config}.type").value
+            sql_query = self.get_parameter(f"{config}.query").value
+            rate = self.get_parameter(f"{config}.rate").value
+
             if not query_type in query_converter.keys():
                 raise ValueError(
                     f"Type: '{query_type}' is not supported. Supported: {query_converter.keys()}"
                 )
-            query_node = query_converter[query_type](self, config)
-            queries.append(query_node)
-            self.get_logger().info(str(query_node))
+            
+            converter = query_converter[query_type]()
+            self.declare_parameters(namespace=config, parameters=converter.declare_params())
+            topics_msgs = converter.set_params(self.get_parameters_by_prefix(config))
+            query = Query(self.postgresql_connection, sql_query)
 
-        self.queries = queries
+            # TODO: probably sensor data qos or later configurable
+            pubs = [(t, self.create_publisher(m, t, 10)) for (t, m) in topics_msgs]
+            self.converter_pubs.update(pubs)
 
-        self.postgresql_connection = PostgreSQLConnection(self)
+            self.create_timer(1.0/rate, partial(self.timer_callback, query, converter))
 
-        # TODO: Timer per topic? Different update times?
-        timer_period = 1.0  # seconds
-        self.timer_ = self.create_timer(timer_period, self.timer_callback)
+            self.get_logger().info(str(converter))
 
-    def timer_callback(self):
-        for query in self.queries:
-            elements = self.postgresql_connection.session.execute(text(query.query))
-            # if not all(column in elements.keys() for column in non_optional_columns):
-            #     print('Missing one ore more non-optional column.')
-            #     return
-            elements = elements.all()
-            if not elements:
-                print("Query returned no data.")
-                return
-            now = self.get_clock().now()
 
-            query.publish(elements, now)
+    def timer_callback(self, query: Query, converter: QueryResultParser):
+        for t, m in converter.parse_result(query.get_results(), self.get_clock().now().to_msg()):
+            self.converter_pubs[t].publish(m)
 
 
 def main(args=None):
