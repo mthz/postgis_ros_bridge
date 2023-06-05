@@ -18,6 +18,17 @@ from typing import Dict, Any, Iterable, Tuple
 from functools import partial
 
 
+class PostGisConverter:
+    @staticmethod
+    def to_point(geometry):
+        point = wkb.loads(geometry, hex=True)
+        return Point(x=point.x, y=point.y, z=point.z)
+
+    def to_point_tuple(geometry):
+        point = wkb.loads(geometry, hex=True)
+        return (point.x, point.y, point.z)
+    
+
 class PostgreSQLConnection(AbstractContextManager):
     def __init__(self, node: Node):
         ns = "postgresql"
@@ -47,6 +58,9 @@ class PostgreSQLConnection(AbstractContextManager):
     def __exit__(self):
         self.engine.dispose()
 
+    def __repr__(self) -> str:
+        return super().__repr__() + f"({self.engine})"
+    
 
 class Query(AbstractContextManager):
     def __init__(self, postgresql_conn: PostgreSQLConnection, query: str):
@@ -63,10 +77,12 @@ class Query(AbstractContextManager):
     def get_results(self) -> Result:
         return self._session.execute(self._query)
     
-    # -> gets query as string
-    # -> iterable query result
+    def __repr__(self) -> str:
+        return super().__repr__() + f"({self._query})"
+    
 
 class QueryResultParser(ABC):
+    TYPE = "AbstractParser"
 
     @abstractmethod
     def declare_params(self) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
@@ -80,17 +96,10 @@ class QueryResultParser(ABC):
     @abstractmethod
     def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
         return []
+    
+    def __repr__(self) -> str:
+        return self.TYPE
 
-
-class PostGisConverter:
-    @staticmethod
-    def to_point(geometry):
-        point = wkb.loads(geometry, hex=True)
-        return Point(x=point.x, y=point.y, z=point.z)
-
-    def to_point_tuple(geometry):
-        point = wkb.loads(geometry, hex=True)
-        return (point.x, point.y, point.z)
 
 
 class PointResultParser(QueryResultParser):
@@ -117,6 +126,9 @@ class PointResultParser(QueryResultParser):
             return self.frame_id if self.frame_id else elem.frame_id if hasattr(elem, 'frame_id') else 'map'
         return ((self.topic, PointStamped(header=Header(frame_id=get_frame_id(element), stamp=time), point=PostGisConverter.to_point(element.geometry))) for element in result) 
     
+    def __repr__(self) -> str:
+        return super().__repr__() + f"({self.frame_id}, {self.topic})"
+
     
 class PC2ResultParser(QueryResultParser):
     TYPE = "PointCloud2"
@@ -145,6 +157,9 @@ class PC2ResultParser(QueryResultParser):
         ]
         pointcloud_msg = point_cloud2.create_cloud_xyz32(header, points)
         return [(self.topic, pointcloud_msg)]
+    
+    def __repr__(self) -> str:
+        return super().__repr__() + f"({self.frame_id}, {self.topic})"
 
 
 
