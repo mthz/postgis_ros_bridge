@@ -5,13 +5,18 @@ from typing import Dict
 from functools import partial
 
 from postgresql_connection import PostgreSQLConnection
-from query_result_parser import QueryResultParser, PointResultParser, PC2ResultParser, MarkerResultParser
+from query_result_parser import QueryResultParser, PointResultParser, PC2ResultParser, MarkerResultParser, BasicArrayStampedParserFactory
 from query import Query
+from visualization_msgs.msg import MarkerArray
 
 
 # TODO: Maybe extension points
 query_converter: Dict[str, QueryResultParser] = {
     q.TYPE: q for q in [PointResultParser, PC2ResultParser, MarkerResultParser]}
+
+query_converter.update({
+    "Marker[]": BasicArrayStampedParserFactory.create_array_parser(MarkerResultParser, MarkerArray, "markers")
+})
 
 
 class PostGisPublisher(Node):
@@ -31,7 +36,8 @@ class PostGisPublisher(Node):
         self.get_logger().info(f"Parsing sections: {configurations}")
         self.converter_pubs: Dict[str, Publisher] = dict()
         self.postgresql_connection = PostgreSQLConnection(self)
-        self.get_logger().info(f"Connected to database via {self.postgresql_connection}")
+        self.get_logger().info(
+            f"Connected to database via {self.postgresql_connection}")
 
         for config in configurations:
             self.declare_parameters(

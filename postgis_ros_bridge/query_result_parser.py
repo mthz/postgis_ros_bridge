@@ -1,4 +1,4 @@
-from sqlalchemy import Result
+from sqlalchemy import Result, Row
 
 from builtin_interfaces.msg import Time, Duration
 from rcl_interfaces.msg import ParameterDescriptor
@@ -39,13 +39,11 @@ class TopicStampedParser(QueryResultParser):
     def __init__(self) -> None:
         super().__init__()
 
-
     def declare_params(self) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
         return [
             ('frame_id', Parameter.Type.STRING, ParameterDescriptor()),
             ('topic', Parameter.Type.STRING, ParameterDescriptor())
         ]
-
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
         self.frame_id = params['frame_id'].value
@@ -53,25 +51,36 @@ class TopicStampedParser(QueryResultParser):
         return []
 
 
-class PointResultParser(TopicStampedParser):
-    TYPE = "Point3D"
-
+class SingleElementParser(TopicStampedParser):
+    TYPE = None
 
     def __init__(self) -> None:
         super().__init__()
 
+    @abstractmethod
+    def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
+        return None
+
+    def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
+        return (self.parse_single_element(element, time) for element in result)
+
+
+class PointResultParser(SingleElementParser):
+    TYPE = "Point3D"
+
+    def __init__(self) -> None:
+        super().__init__()
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
         return super().set_params(params) + [(self.topic, PointStamped)]
 
-
-    def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
+    def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
         def get_frame_id(elem):
             return self.frame_id if self.frame_id else elem.frame_id if hasattr(elem, 'frame_id') else 'map'
-        return ((self.topic,
-                 PointStamped(header=Header(frame_id=get_frame_id(element), stamp=time),
-                              point=PostGisConverter.to_point(element.geometry))) for element in result)
 
+        return (self.topic,
+                PointStamped(header=Header(frame_id=get_frame_id(element), stamp=time),
+                             point=PostGisConverter.to_point(element.geometry)))
 
     def __repr__(self) -> str:
         return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"
@@ -82,7 +91,6 @@ class PC2ResultParser(TopicStampedParser):
 
     def __init__(self) -> None:
         super().__init__()
-
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
         return super().set_params(params) + [(self.topic,  PointCloud2)]
@@ -102,7 +110,7 @@ class PC2ResultParser(TopicStampedParser):
         return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"
 
 
-class MarkerResultParser(TopicStampedParser):
+class MarkerResultParser(SingleElementParser):
     TYPE = "Marker"
 
     def __init__(self) -> None:
@@ -118,16 +126,54 @@ class MarkerResultParser(TopicStampedParser):
         self.marker_type = params['marker_type'].value
         return topics + [(self.topic, Marker)]
 
-    def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
+    def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
         def get_frame_id(elem):
             return self.frame_id if self.frame_id else elem.frame_id if hasattr(elem, 'frame_id') else 'map'
 
-        return ((self.topic,
+        def get_id(elem):
+            return elem.id if hasattr(elem, 'id') else 0
+
+        return (self.topic,
                 PostGisConverter.to_marker(header=Header(frame_id=get_frame_id(element), stamp=time),
                                            geometry=element.geometry,
                                            orientation=element.rotation,
-                                           action=Marker.MODIFY, id=id, 
-                                           type=Marker.ARROW, 
+                                           action=Marker.MODIFY,
+                                           id=get_id(element),
+                                           type=Marker.ARROW,
                                            scale=Vector3(x=0.1, y=0.1, z=0.1),
-                                           color=ColorRGBA(r=1.0, g=0.0, b=0.0, a=1.0),
-                                           lifetime=Duration(sec=3))) for id, element in enumerate(result))
+                                           color=ColorRGBA(
+                                               r=1.0, g=0.0, b=0.0, a=1.0),
+                                           lifetime=Duration(sec=3)))
+
+
+class BasicArrayStampedParserFactory:
+    @staticmethod
+    def create_array_parser(cls: SingleElementParser, msg: Any, field: str):
+        class ArrayParserMessage(cls):
+            def __init__(self) -> None:
+                super().__init__()
+                self._has_header = hasattr(msg, 'header') and msg.get_fields_and_types()[
+                    'header'] == 'std_msgs/Header'
+
+            def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
+                super().set_params(params)
+                return [(self.topic, msg)]
+
+            def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
+                def get_frame_id(elem):
+                    return self.frame_id if self.frame_id else elem.frame_id if hasattr(elem, 'frame_id') else 'map'
+
+                # TODO: toplevel header (frame_id, timestamp can be different from internal elements)
+                #       Add addition toplevel param and if not defined use header of first element
+                args = dict()
+
+                if self._has_header:
+                    args['header'] = Header(
+                        frame_id=get_frame_id(None), stamp=time)
+
+                args.update({field: [self.parse_single_element(
+                    element, time)[1] for element in result]})
+
+                m = msg(**args)
+                return [(self.topic, m)]
+        return ArrayParserMessage
