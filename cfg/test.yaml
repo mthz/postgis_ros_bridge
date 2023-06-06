@@ -11,7 +11,7 @@ postgis_ros_publisher:
     publish:
       - cfg_point
       # - cfg_marker
-      # - cfg_pointcloud
+      - cfg_pointcloud
       # - cfg_pose 
 
     cfg_default:

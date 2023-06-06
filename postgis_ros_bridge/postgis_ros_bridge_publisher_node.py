@@ -109,10 +109,8 @@ class PointResultParser(QueryResultParser):
 
     def declare_params(self) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
         return [
-            ('frame_id', '', ParameterDescriptor(
-                name='frame_id', type=ParameterType.PARAMETER_STRING)),
-            ('topic', 'point', ParameterDescriptor(
-                name='topic', type=ParameterType.PARAMETER_STRING))
+            ('frame_id', Parameter.Type.STRING, ParameterDescriptor()),
+            ('topic', Parameter.Type.STRING, ParameterDescriptor())
         ]
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
@@ -139,10 +137,8 @@ class PC2ResultParser(QueryResultParser):
 
     def declare_params(self) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
         return [
-            ('frame_id', '', ParameterDescriptor(
-                name='frame_id', type=ParameterType.PARAMETER_STRING)),
-            ('topic', 'point', ParameterDescriptor(
-                name='topic', type=ParameterType.PARAMETER_STRING))
+            ('frame_id', Parameter.Type.STRING, ParameterDescriptor()),
+            ('topic', Parameter.Type.STRING, ParameterDescriptor())
         ]
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
@@ -154,7 +150,7 @@ class PC2ResultParser(QueryResultParser):
         def get_frame_id():
             return self.frame_id if self.frame_id else 'map'
         pointcloud_msg = PointCloud2()
-        header = Header(frame_id=self.get_frame_id(), stamp=time)
+        header = Header(frame_id=get_frame_id(), stamp=time)
         points = [
             PostGisConverter.to_point_tuple(element.geometry) for element in result
         ]
@@ -292,8 +288,9 @@ class PostGisPublisher(Node):
                 )
 
             converter = query_converter[query_type]()
+            # TODO: namespace bug in rclyp Node in declape params name initialized after value query
             self.declare_parameters(
-                namespace=config, parameters=converter.declare_params())
+                namespace="", parameters=list(map(lambda x: (f"{config}.{x[0]}", x[1], x[2]), converter.declare_params())))
             topics_msgs = converter.set_params(
                 self.get_parameters_by_prefix(config))
             query = Query(self.postgresql_connection, sql_query)
