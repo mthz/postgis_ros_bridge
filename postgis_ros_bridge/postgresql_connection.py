@@ -34,5 +34,5 @@ class PostgreSQLConnection(AbstractContextManager):
         self.engine.dispose()
 
     def __repr__(self) -> str:
-        return super().__repr__() + f"({self.engine})"
+        return f"{str(self.engine.url)}"
 

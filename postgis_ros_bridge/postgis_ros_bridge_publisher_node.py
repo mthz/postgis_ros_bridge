@@ -16,7 +16,8 @@ query_converter: Dict[str, QueryResultParser] = {
 
 class PostGisPublisher(Node):
     def __init__(self):
-        super().__init__("postgis_ros_publisher")
+        super().__init__(node_name="postgis_ros_publisher")
+        self.get_logger().info(f"Starting {self.get_name()}...")
 
         # automatically_declare_parameters_from_overrides=True
         self.declare_parameters(
@@ -27,9 +28,10 @@ class PostGisPublisher(Node):
         )
 
         configurations = self.get_parameter("publish").value
-        print(f"Publishing: {configurations}")
+        self.get_logger().info(f"Parsing sections: {configurations}")
         self.converter_pubs: Dict[str, Publisher] = dict()
         self.postgresql_connection = PostgreSQLConnection(self)
+        self.get_logger().info(f"Connected to database via {self.postgresql_connection}")
 
         for config in configurations:
             self.declare_parameters(
@@ -65,7 +67,7 @@ class PostGisPublisher(Node):
             self.create_timer(
                 1.0/rate, partial(self.timer_callback, query, converter))
 
-            self.get_logger().info(str(converter))
+            self.get_logger().info(f"Register converter: {str(converter)}")
 
     def timer_callback(self, query: Query, converter: QueryResultParser):
         for t, m in converter.parse_result(query.get_results(), self.get_clock().now().to_msg()):
