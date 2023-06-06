@@ -10,8 +10,9 @@ postgis_ros_publisher:
 
     publish:
       - cfg_point
-      # - cfg_marker
-      - cfg_pointcloud
+      - cfg_marker
+      # - cfg_marker_array
+      # - cfg_pointcloud
       # - cfg_pose 
 
     cfg_default:
@@ -26,11 +27,18 @@ postgis_ros_publisher:
 
 
     cfg_marker: 
-      query: "SELECT position AS geometry, 'test_frame_id' AS frame_id FROM landmark;"
+      query: "SELECT pose.position AS geometry, pose.rotation_vector AS rotation, 'test_frame_id' AS frame_id FROM pose;"
       type: "Marker"
-      position: "asdf" #automatic with geometry
-      orientation: "asdf" # autmatic with orientation (rpy) else 0
       marker_type: "visualization_msgs::Marker::SPHERE" # marker_type or here | default sphere
+      topic: "marker"
+      rate: 10.0
+
+    cfg_marker_array: 
+      query: "SELECT pose.position AS geometry, pose.rotation_vector AS rotation, 'test_frame_id' AS frame_id FROM pose;"
+      type: "MarkerArray"
+      marker_type: "visualization_msgs::Marker::SPHERE" # marker_type or here | default sphere
+      topic: "marker_array"
+      rate: 10.0
 
     cfg_pointcloud:
       query: "SELECT position AS geometry FROM landmark;"
@@ -40,9 +48,8 @@ postgis_ros_publisher:
       rate: 1.0
 
     cfg_pose: 
-      query: "SELECT landmark.position AS geometry, landmark.orientation as orientation, 'test_frame_id' AS frame_id FROM landmark;"
+      query: "SELECT pose.position AS geometry, pose.rotation_vector AS rotation, 'test_frame_id' AS frame_id FROM pose;"
       type: "Pose"
-      position: "asdf" # geometry
       orientation: "asdf" # orientation (xyz as rpy, which is as geometry)
 
 

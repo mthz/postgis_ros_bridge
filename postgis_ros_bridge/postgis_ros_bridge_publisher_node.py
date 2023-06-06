@@ -5,13 +5,13 @@ from typing import Dict
 from functools import partial
 
 from postgresql_connection import PostgreSQLConnection
-from query_result_parser import QueryResultParser, PointResultParser, PC2ResultParser
+from query_result_parser import QueryResultParser, PointResultParser, PC2ResultParser, MarkerResultParser
 from query import Query
 
 
 # TODO: Maybe extension points
 query_converter: Dict[str, QueryResultParser] = {
-    q.TYPE: q for q in [PointResultParser, PC2ResultParser]}
+    q.TYPE: q for q in [PointResultParser, PC2ResultParser, MarkerResultParser]}
 
 
 class PostGisPublisher(Node):
@@ -52,7 +52,7 @@ class PostGisPublisher(Node):
                 )
 
             converter = query_converter[query_type]()
-            # TODO: namespace bug in rclyp Node in declape params name initialized after value query
+            # TODO: namespace bug in rclyp Node in declare params name initialized after value query
             self.declare_parameters(
                 namespace="", parameters=list(map(lambda x: (f"{config}.{x[0]}", x[1], x[2]), converter.declare_params())))
             topics_msgs = converter.set_params(
@@ -69,9 +69,11 @@ class PostGisPublisher(Node):
 
             self.get_logger().info(f"Register converter: {str(converter)}")
 
+    # TODO: prefetching? Async Sessions, check performance issues (pc2 sloooooow)
     def timer_callback(self, query: Query, converter: QueryResultParser):
-        for t, m in converter.parse_result(query.get_results(), self.get_clock().now().to_msg()):
-            self.converter_pubs[t].publish(m)
+        with query.get_results() as results:
+            for t, m in converter.parse_result(results, self.get_clock().now().to_msg()):
+                self.converter_pubs[t].publish(m)
 
 
 def main(args=None):
