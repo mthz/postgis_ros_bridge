@@ -121,8 +121,8 @@ class PointResultParser(QueryResultParser):
     def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
         def get_frame_id(elem):
             return self.frame_id if self.frame_id else elem.frame_id if hasattr(elem, 'frame_id') else 'map'
-        return ((self.topic, 
-                 PointStamped(header=Header(frame_id=get_frame_id(element), stamp=time), 
+        return ((self.topic,
+                 PointStamped(header=Header(frame_id=get_frame_id(element), stamp=time),
                               point=PostGisConverter.to_point(element.geometry))) for element in result)
 
     def __repr__(self) -> str:
@@ -171,81 +171,6 @@ class PostGisConverter:
         point = wkb.loads(geometry, hex=True)
         return (point.x, point.y, point.z)
 
-
-# class Point3DQuery:
-#     type = "Point3D"
-
-#     def __init__(self, node: Node, config: str):
-#         node.declare_parameters(
-#             namespace="",
-#             parameters=[
-#                 (f"{config}.query", ""),
-#                 (f"{config}.topic", "points"),
-#                 (f"{config}.frame_id", ""),
-#                 (f"{config}.rate", 10.0),
-#             ],
-#         )
-
-#         self.query = node.get_parameter(f"{config}.query").value
-#         self.topic = node.get_parameter(f"{config}.topic").value
-#         self.frame_id = node.get_parameter(f"{config}.frame_id").value
-#         self.rate = node.get_parameter(f"{config}.rate").value
-
-#         self.publisher_ = node.create_publisher(PointStamped, self.topic, 10)
-
-#     def publish(self, result, timestamp):
-#         for element in result:
-#             frame_id = (
-#                 element.frame_id if hasattr(element, "frame_id") else self.frame_id
-#             )
-#             point_stamped = PointStamped(
-#                 header=Header(frame_id=frame_id, stamp=timestamp.to_msg()),
-#                 point=PostGisConverter.to_point(element.geometry),
-#             )
-
-#             self.publisher_.publish(point_stamped)
-
-#     def __repr__(self):
-#         return f'{self.__class__.__name__}: query: "{self.query}" topic: {self.topic}, frame_id: {self.frame_id}'
-
-
-# class PointCloud2Query:
-#     type = "PointCloud2"
-
-#     def __init__(self, node: Node, config: str):
-#         node.declare_parameters(
-#             namespace="",
-#             parameters=[
-#                 (f"{config}.query", ""),
-#                 (f"{config}.topic", "points"),
-#                 (f"{config}.frame_id", ""),
-#                 (f"{config}.rate", 10.0),
-#             ],
-#         )
-
-#         self.query = node.get_parameter(f"{config}.query").value
-#         self.topic = node.get_parameter(f"{config}.topic").value
-#         self.frame_id = node.get_parameter(f"{config}.frame_id").value
-#         self.rate = node.get_parameter(f"{config}.rate").value
-
-#         self.publisher_ = node.create_publisher(PointCloud2, self.topic, 10)
-
-#     def publish(self, result, timestamp):
-#         pointcloud_msg = PointCloud2()
-
-#         header = Header(frame_id=self.frame_id, stamp=timestamp.to_msg())
-#         points = [
-#             PostGisConverter.to_point_tuple(element.geometry) for element in result
-#         ]
-#         pointcloud_msg = point_cloud2.create_cloud_xyz32(header, points)
-
-#         self.publisher_.publish(pointcloud_msg)
-
-#     def __repr__(self):
-#         return f'{self.__class__.__name__}: query: "{self.query}" topic: {self.topic}, frame_id: {self.frame_id}'
-
-#     def __str__(self):
-#         return f'{self.__class__.__name__}: \n query: "{self.query}" \b topic: {self.topic}, \n frame_id: {self.frame_id}'
 
 # TODO: Maybe extension points
 query_converter: Dict[str, QueryResultParser] = {
