@@ -15,6 +15,8 @@ postgis_ros_publisher:
       - cfg_pose
       - cfg_pose_array
       - cfg_pose_stamped
+      - cfg_polygon
+      - cfg_polygon_stamped
 
     cfg_default:
       rate: 10.0
@@ -24,15 +26,6 @@ postgis_ros_publisher:
       type: "PointStamped" 
       topic: "point"
       rate: 10.0
-
-    # cfg_pointarray:
-    #   query: "SELECT position AS geometry, 'test_frame_id' AS frame_id FROM landmark;"
-    #   type: "Point3D[]" # Point2D PointCloud, Polygon Marker, Marker, Pose
-    #   # frame_id: "asdf" # custom or via frame_id
-    #   msg_type: "geometry_msgs/PointStampedArray"
-    #   field: points
-    #   topic: "points"
-    #   rate: 10.0
 
     cfg_marker:
       query: "SELECT ROW_NUMBER() OVER (ORDER BY pose.id) AS id, pose.position AS geometry, pose.rotation_vector AS rotation, 'test_frame_id' AS frame_id FROM pose;"
@@ -69,16 +62,27 @@ postgis_ros_publisher:
       frame_id: "test_frame_id"
       rate: 10.0
 
-
     cfg_pose_stamped:
       query: "SELECT pose.position AS geometry, pose.rotation_vector AS rotation, 'test_frame_id' AS frame_id FROM pose;"
       type: "PoseStamped"
       topic: "pose_stamped"
       rate: 10.0
 
+    cfg_polygon:
+      query: "SELECT ST_MakePolygon( 'LINESTRING(75.15 29.53, 77 29, 77.6 29.5, 75.15 29.53)') AS geometry, ST_GeometryType(ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)')) AS type, 'test' AS frame_id;"
+      type: "Polygon"
+      topic: "polygon"
+      rate: 10.0
+
+    cfg_polygon_stamped:
+      query: "SELECT ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)') AS geometry, ST_GeometryType(ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)')) AS type, 'test' AS frame_id;"
+      type: "PolygonStamped"
+      topic: "polygon_stamped"
+      frame_id: "test_frame_id"
+      rate: 10.0
 
       # frame_id: "map"
       # rate: 10
-# "SELECT ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)') AS geometry, ST_GeometryType(ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)')) AS type, 'test' AS frame_id;"
+# "SELECT ST_MakePolygon( 'LINESTRING(75.15 29.53 1.0, 77 29 1,77.6 29.5 1.0 , 75.15 29.53 1.0 )') AS geometry, ST_GeometryType(ST_MakePolygon( 'LINESTRING(75.15 29.53 1,77 29 1,77.6 29.5 1, 75.15 29.53 1)')) AS type, 'test' AS frame_id;"
 # "SELECT ST_MakePoint(10.15, 13.53, 0.0) AS geometry, ST_GeometryType(ST_MakePoint(10.15, 13.53, 0.0)) AS type, 'test' AS frame_id;"
 # "SELECT ST_MakePoint(75.15, 29.53, 1.0) AS geometry, ST_GeometryType(ST_MakePoint(75.15, 29.53, 1.0)) AS type, 'test' AS frame_id;"

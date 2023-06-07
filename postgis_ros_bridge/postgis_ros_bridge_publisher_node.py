@@ -7,7 +7,7 @@ from query import Query
 from query_result_parser import (BasicStampedArrayParserFactory,
                                  MarkerResultParser, PC2ResultParser,
                                  PointResultParser, PoseResultParser,
-                                 PoseStampedResultParser, QueryResultParser)
+                                 PoseStampedResultParser, PolygonResultParser, PolygonStampedResultParser, QueryResultParser)
 from rclpy.node import Node
 from rclpy.publisher import Publisher
 from visualization_msgs.msg import MarkerArray
@@ -15,11 +15,23 @@ from geometry_msgs.msg import PoseArray
 
 # TODO: Maybe extension points
 query_parser: Dict[str, QueryResultParser] = {
-    q.TYPE: q for q in [PointResultParser, PoseResultParser, PoseStampedResultParser, PC2ResultParser, MarkerResultParser]}
+    q.TYPE: q for q in [
+        PointResultParser,
+        PoseResultParser,
+        PoseStampedResultParser,
+        PC2ResultParser,
+        MarkerResultParser,
+        PolygonResultParser,
+        PolygonStampedResultParser,
+    ]}
 
 query_parser.update({
-    "MarkerArray": BasicStampedArrayParserFactory.create_array_parser(MarkerResultParser, MarkerArray, "markers"),
-    "PoseArray": BasicStampedArrayParserFactory.create_array_parser(PoseResultParser, PoseArray, "poses"),
+    "MarkerArray":
+        BasicStampedArrayParserFactory.create_array_parser(
+            MarkerResultParser, MarkerArray, "markers"),
+    "PoseArray":
+        BasicStampedArrayParserFactory.create_array_parser(
+            PoseResultParser, PoseArray, "poses"),
 })
 
 

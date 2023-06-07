@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterable, Tuple
 
 from builtin_interfaces.msg import Duration, Time
-from geometry_msgs.msg import PointStamped, Vector3, Pose, PoseStamped
+from geometry_msgs.msg import PointStamped, Vector3, Pose, PoseStamped, Polygon, PolygonStamped
 from postgis_converter import PostGisConverter
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.parameter import Parameter
@@ -146,7 +146,39 @@ class PC2ResultParser(StampedTopicParser):
 
     def __repr__(self) -> str:
         return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"
+    
+class PolygonResultParser(SingleElementParser):
+    TYPE = "Polygon"
 
+    def __init__(self) -> None:
+        super().__init__()
+
+    def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
+        return super().set_params(params) + [(self.topic, Polygon)]
+    
+    def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
+        return (self.topic, PostGisConverter.to_polygon(element.geometry))
+    
+    def __repr__(self) -> str:
+        return super().__repr__() + f" (using topic: {self.topic})"
+    
+
+class PolygonStampedResultParser(SingleElementParser):
+    TYPE = "PolygonStamped"
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
+        return super().set_params(params) + [(self.topic, PolygonStamped)]
+    
+    def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
+        return (self.topic, PostGisConverter.to_polygon_stamped(element.geometry, 
+                                                                header=Header(frame_id=self.get_frame_id(element), stamp=time)))
+    
+    def __repr__(self) -> str:
+        return super().__repr__() + f" (using topic: {self.topic})"
+    
 
 class MarkerResultParser(SingleElementParser):
     TYPE = "Marker"

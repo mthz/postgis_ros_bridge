@@ -1,6 +1,6 @@
 from typing import Union
 
-from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion
+from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion, Polygon, PolygonStamped, Point32
 from scipy.spatial.transform import Rotation
 from shapely import wkb
 from visualization_msgs.msg import Marker
@@ -38,8 +38,19 @@ class PostGisConverter:
         position = PostGisConverter.to_point(geometry)
         orientation = PostGisConverter.to_orientation(orientation)
         return Pose(position=position, orientation=orientation)
-    
+
     @staticmethod
     def to_pose_stamped(geometry, orientation, header, hex=True) -> PoseStamped:
         pose = PostGisConverter.to_pose(geometry, orientation, hex=hex)
         return PoseStamped(header=header, pose=pose)
+
+    @staticmethod
+    def to_polygon(geometry: Union[bytes, str], hex=True) -> Polygon:
+        polygon = wkb.loads(geometry, hex=hex)
+        return Polygon(
+            points=[Point32(x=x, y=y, z=z) for x, y, z in polygon.boundary.coords]) if polygon.has_z else Polygon(points=[Point32(x=x, y=y, z=0.0) for x, y in polygon.boundary.coords])
+
+    @staticmethod
+    def to_polygon_stamped(geometry: Union[bytes, str], header, hex=True) -> PolygonStamped:
+        polygon = PostGisConverter.to_polygon(geometry, hex=hex)
+        return PolygonStamped(header=header, polygon=polygon)
