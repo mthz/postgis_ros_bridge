@@ -3,9 +3,9 @@ from typing import Dict
 
 import rclpy
 from geometry_msgs.msg import PoseArray
-from postgresql_connection import PostgreSQLConnection
-from query import Query
-from query_result_parser import (BasicStampedArrayParserFactory,
+from postgis_ros_bridge.postgresql_connection import PostgreSQLConnection
+from postgis_ros_bridge.query import Query
+from postgis_ros_bridge.query_result_parser import (BasicStampedArrayParserFactory,
                                  MarkerResultParser, PC2ResultParser,
                                  PointResultParser, PolygonResultParser,
                                  PolygonStampedResultParser, PoseResultParser,

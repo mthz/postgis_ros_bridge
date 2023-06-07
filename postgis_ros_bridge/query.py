@@ -1,6 +1,6 @@
 from contextlib import AbstractContextManager
 
-from postgresql_connection import PostgreSQLConnection
+from postgis_ros_bridge.postgresql_connection import PostgreSQLConnection
 from sqlalchemy import Result, text
 from sqlalchemy.orm import sessionmaker
 

@@ -3,7 +3,7 @@ from typing import Any, Dict, Iterable, Tuple
 
 from builtin_interfaces.msg import Duration, Time
 from geometry_msgs.msg import PointStamped, Vector3, Pose, PoseStamped, Polygon, PolygonStamped
-from postgis_converter import PostGisConverter
+from postgis_ros_bridge.postgis_converter import PostGisConverter
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.parameter import Parameter
 from sensor_msgs.msg import PointCloud2
