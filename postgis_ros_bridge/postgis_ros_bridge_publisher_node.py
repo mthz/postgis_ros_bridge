@@ -4,7 +4,7 @@ from typing import Dict
 import rclpy
 from postgresql_connection import PostgreSQLConnection
 from query import Query
-from query_result_parser import (BasicArrayStampedParserFactory,
+from query_result_parser import (BasicStampedArrayParserFactory,
                                  MarkerResultParser, PC2ResultParser,
                                  PointResultParser, QueryResultParser)
 from rclpy.node import Node
@@ -16,7 +16,7 @@ query_parser: Dict[str, QueryResultParser] = {
     q.TYPE: q for q in [PointResultParser, PC2ResultParser, MarkerResultParser]}
 
 query_parser.update({
-    "Marker[]": BasicArrayStampedParserFactory.create_array_parser(MarkerResultParser, MarkerArray, "markers")
+    "Marker[]": BasicStampedArrayParserFactory.create_array_parser(MarkerResultParser, MarkerArray, "markers")
 })
 
 

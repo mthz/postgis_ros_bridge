@@ -32,7 +32,7 @@ class QueryResultParser(ABC):
         return self.TYPE
 
 
-class TopicStampedParser(QueryResultParser):
+class StampedTopicParser(QueryResultParser):
     """"Base class for parsers which produce a single stamped message topic"""
     TYPE = None
 
@@ -51,7 +51,7 @@ class TopicStampedParser(QueryResultParser):
         return []
 
 
-class SingleElementParser(TopicStampedParser):
+class SingleElementParser(StampedTopicParser):
     TYPE = None
 
     def __init__(self) -> None:
@@ -86,7 +86,7 @@ class PointResultParser(SingleElementParser):
         return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"
 
 
-class PC2ResultParser(TopicStampedParser):
+class PC2ResultParser(StampedTopicParser):
     TYPE = "PointCloud2"
 
     def __init__(self) -> None:
@@ -149,7 +149,7 @@ class MarkerResultParser(SingleElementParser):
         return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"
 
 
-class BasicArrayStampedParserFactory:
+class BasicStampedArrayParserFactory:
     @staticmethod
     def create_array_parser(cls: SingleElementParser, msg: Any, field: str):
         class ArrayParserMessage(cls):
