@@ -1,9 +1,8 @@
-from sqlalchemy import text, Result
-from sqlalchemy.orm import sessionmaker
-
 from contextlib import AbstractContextManager
 
 from postgresql_connection import PostgreSQLConnection
+from sqlalchemy import Result, text
+from sqlalchemy.orm import sessionmaker
 
 
 class Query(AbstractContextManager):
@@ -23,4 +22,3 @@ class Query(AbstractContextManager):
 
     def __repr__(self) -> str:
         return super().__repr__() + f"({self._query})"
-

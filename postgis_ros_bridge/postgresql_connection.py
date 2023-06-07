@@ -1,6 +1,7 @@
-from sqlalchemy import create_engine
-from rclpy.node import Node
 from contextlib import AbstractContextManager
+
+from rclpy.node import Node
+from sqlalchemy import create_engine
 
 
 class PostgreSQLConnection(AbstractContextManager):
@@ -35,4 +36,3 @@ class PostgreSQLConnection(AbstractContextManager):
 
     def __repr__(self) -> str:
         return f"{str(self.engine.url)}"
-

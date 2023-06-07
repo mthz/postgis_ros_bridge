@@ -1,17 +1,16 @@
-from sqlalchemy import Result, Row
+from abc import ABC, abstractmethod
+from typing import Any, Dict, Iterable, Tuple
 
-from builtin_interfaces.msg import Time, Duration
+from builtin_interfaces.msg import Duration, Time
+from geometry_msgs.msg import PointStamped, Vector3
+from postgis_converter import PostGisConverter
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.parameter import Parameter
-from std_msgs.msg import Header, ColorRGBA
-from geometry_msgs.msg import PointStamped, Vector3
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs_py import point_cloud2
+from sqlalchemy import Result, Row
+from std_msgs.msg import ColorRGBA, Header
 from visualization_msgs.msg import Marker
-from abc import ABC, abstractmethod
-from typing import Dict, Any, Iterable, Tuple
-
-from postgis_converter import PostGisConverter
 
 
 class QueryResultParser(ABC):
@@ -34,6 +33,7 @@ class QueryResultParser(ABC):
 
 
 class TopicStampedParser(QueryResultParser):
+    """"Base class for parsers which produce a single stamped message topic"""
     TYPE = None
 
     def __init__(self) -> None:

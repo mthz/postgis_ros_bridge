@@ -1,14 +1,15 @@
+from functools import partial
+from typing import Dict
+
 import rclpy
+from postgresql_connection import PostgreSQLConnection
+from query import Query
+from query_result_parser import (BasicArrayStampedParserFactory,
+                                 MarkerResultParser, PC2ResultParser,
+                                 PointResultParser, QueryResultParser)
 from rclpy.node import Node
 from rclpy.publisher import Publisher
-from typing import Dict
-from functools import partial
-
-from postgresql_connection import PostgreSQLConnection
-from query_result_parser import QueryResultParser, PointResultParser, PC2ResultParser, MarkerResultParser, BasicArrayStampedParserFactory
-from query import Query
 from visualization_msgs.msg import MarkerArray
-
 
 # TODO: Maybe extension points
 query_converter: Dict[str, QueryResultParser] = {
