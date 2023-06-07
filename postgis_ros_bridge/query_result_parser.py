@@ -49,6 +49,15 @@ class StampedTopicParser(QueryResultParser):
         self.frame_id = params['frame_id'].value
         self.topic = params['topic'].value
         return []
+    
+    def get_frame_id_from_config(self) -> str:
+        return self.frame_id if self.frame_id else 'map'
+    
+    def get_frame_id_from_sql(elem: Row) -> str:
+        return elem.frame_id if hasattr(elem, 'frame_id') else 'map'
+
+    def get_frame_id(self, elem: Row) -> str:
+        return self.frame_id if self.frame_id else elem.frame_id if hasattr(elem, 'frame_id') else 'map'
 
 
 class SingleElementParser(StampedTopicParser):
@@ -75,11 +84,8 @@ class PointResultParser(SingleElementParser):
         return super().set_params(params) + [(self.topic, PointStamped)]
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
-        def get_frame_id(elem):
-            return self.frame_id if self.frame_id else elem.frame_id if hasattr(elem, 'frame_id') else 'map'
-
         return (self.topic,
-                PointStamped(header=Header(frame_id=get_frame_id(element), stamp=time),
+                PointStamped(header=Header(frame_id=self.get_frame_id(element), stamp=time),
                              point=PostGisConverter.to_point(element.geometry)))
 
     def __repr__(self) -> str:
@@ -112,12 +118,9 @@ class PoseStampedResultParser(SingleElementParser):
         return super().set_params(params) + [(self.topic, PoseStamped)]
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
-        def get_frame_id(elem):
-            return self.frame_id if self.frame_id else elem.frame_id if hasattr(elem, 'frame_id') else 'map'
-
         return (self.topic, PostGisConverter.to_pose_stamped(geometry=element.geometry,
                                                              orientation=element.rotation,
-                                                             header=Header(frame_id=get_frame_id(element), stamp=time)))
+                                                             header=Header(frame_id=self.get_frame_id(element), stamp=time)))
 
     def __repr__(self) -> str:
         return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"
@@ -133,10 +136,8 @@ class PC2ResultParser(StampedTopicParser):
         return super().set_params(params) + [(self.topic,  PointCloud2)]
 
     def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
-        def get_frame_id():
-            return self.frame_id if self.frame_id else 'map'
         pointcloud_msg = PointCloud2()
-        header = Header(frame_id=get_frame_id(), stamp=time)
+        header = Header(frame_id=self.get_frame_id_from_config(), stamp=time)
         points = [
             PostGisConverter.to_point_tuple(element.geometry) for element in result.all()
         ]
@@ -164,14 +165,12 @@ class MarkerResultParser(SingleElementParser):
         return topics + [(self.topic, Marker)]
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
-        def get_frame_id(elem):
-            return self.frame_id if self.frame_id else elem.frame_id if hasattr(elem, 'frame_id') else 'map'
 
         def get_id(elem):
             return elem.id if hasattr(elem, 'id') else 0
 
         return (self.topic,
-                PostGisConverter.to_marker(header=Header(frame_id=get_frame_id(element), stamp=time),
+                PostGisConverter.to_marker(header=Header(frame_id=self.get_frame_id(element), stamp=time),
                                            geometry=element.geometry,
                                            orientation=element.rotation,
                                            action=Marker.MODIFY,
@@ -200,16 +199,13 @@ class BasicStampedArrayParserFactory:
                 return [(self.topic, msg)]
 
             def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
-                def get_frame_id(elem):
-                    return self.frame_id if self.frame_id else elem.frame_id if hasattr(elem, 'frame_id') else 'map'
-
                 # TODO: toplevel header (frame_id, timestamp can be different from internal elements)
                 #       Add addition toplevel param and if not defined use header of first element
                 args = dict()
 
                 if self._has_header:
                     args['header'] = Header(
-                        frame_id=get_frame_id(None), stamp=time)
+                        frame_id=self.get_frame_id(None), stamp=time)
 
                 args.update({field: [self.parse_single_element(
                     element, time)[1] for element in result]})
