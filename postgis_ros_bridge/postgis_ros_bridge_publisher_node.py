@@ -2,9 +2,9 @@ from functools import partial
 from typing import Dict
 
 import rclpy
-from postgresql_connection import PostgreSQLConnection
-from query import Query
-from query_result_parser import (BasicStampedArrayParserFactory,
+from .postgresql_connection import PostgreSQLConnection
+from .query import Query
+from .query_result_parser import (BasicStampedArrayParserFactory,
                                  MarkerResultParser, PC2ResultParser,
                                  PointResultParser, PoseResultParser,
                                  PoseStampedResultParser, QueryResultParser)
