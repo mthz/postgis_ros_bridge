@@ -13,6 +13,8 @@ postgis_ros_publisher:
       - cfg_marker_array
       - cfg_pointcloud
       - cfg_pose
+      - cfg_pose_array
+      - cfg_pose_stamped
 
     cfg_default:
       rate: 10.0
@@ -55,6 +57,20 @@ postgis_ros_publisher:
       rate: 1.0
 
     cfg_pose:
+      query: "SELECT pose.position AS geometry, pose.rotation_vector AS rotation FROM pose;"
+      type: "Pose"
+      topic: "pose"
+      rate: 10.0
+
+    cfg_pose_array:
+      query: "SELECT pose.position AS geometry, pose.rotation_vector AS rotation FROM pose;"
+      type: "PoseArray"
+      topic: "pose_array"
+      frame_id: "test_frame_id"
+      rate: 10.0
+
+
+    cfg_pose_stamped:
       query: "SELECT pose.position AS geometry, pose.rotation_vector AS rotation, 'test_frame_id' AS frame_id FROM pose;"
       type: "PoseStamped"
       topic: "pose_stamped"

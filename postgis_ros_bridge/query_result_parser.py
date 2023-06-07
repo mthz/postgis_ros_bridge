@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterable, Tuple
 
 from builtin_interfaces.msg import Duration, Time
-from geometry_msgs.msg import PointStamped, Vector3, PoseStamped
+from geometry_msgs.msg import PointStamped, Vector3, Pose, PoseStamped
 from postgis_converter import PostGisConverter
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.parameter import Parameter
@@ -86,6 +86,22 @@ class PointResultParser(SingleElementParser):
         return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"
 
 
+class PoseResultParser(SingleElementParser):
+    TYPE = "Pose"
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
+        return super().set_params(params) + [(self.topic, Pose)]
+
+    def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
+        return (self.topic, PostGisConverter.to_pose(element.geometry, element.rotation))
+
+    def __repr__(self) -> str:
+        return super().__repr__() + f" (using topic: {self.topic})"
+
+
 class PoseStampedResultParser(SingleElementParser):
     TYPE = "PoseStamped"
 
@@ -94,15 +110,15 @@ class PoseStampedResultParser(SingleElementParser):
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
         return super().set_params(params) + [(self.topic, PoseStamped)]
-    
+
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
         def get_frame_id(elem):
             return self.frame_id if self.frame_id else elem.frame_id if hasattr(elem, 'frame_id') else 'map'
 
-        return (self.topic,
-                PoseStamped(header=Header(frame_id=get_frame_id(element), stamp=time),
-                            pose=PostGisConverter.to_pose(element.geometry, element.rotation)))
-    
+        return (self.topic, PostGisConverter.to_pose_stamped(geometry=element.geometry,
+                                                             orientation=element.rotation,
+                                                             header=Header(frame_id=get_frame_id(element), stamp=time)))
+
     def __repr__(self) -> str:
         return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"
 
@@ -165,7 +181,7 @@ class MarkerResultParser(SingleElementParser):
                                            color=ColorRGBA(
                                                r=1.0, g=0.0, b=0.0, a=1.0),
                                            lifetime=Duration(sec=3)))
-    
+
     def __repr__(self) -> str:
         return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"
 
@@ -176,8 +192,8 @@ class BasicStampedArrayParserFactory:
         class ArrayParserMessage(cls):
             def __init__(self) -> None:
                 super().__init__()
-                self._has_header = hasattr(msg, 'header') and msg.get_fields_and_types()[
-                    'header'] == 'std_msgs/Header'
+                self._has_header = hasattr(msg, 'header')  # and msg.get_fields_and_types()[
+                # 'header'] == 'std_msgs/Header'
 
             def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
                 super().set_params(params)
@@ -200,8 +216,8 @@ class BasicStampedArrayParserFactory:
 
                 m = msg(**args)
                 return [(self.topic, m)]
-            
+
             def __repr__(self) -> str:
                 return f"{super().TYPE}Array (using frame_id: {self.frame_id} and topic: {self.topic})"
-            
+
         return ArrayParserMessage
