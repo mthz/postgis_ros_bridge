@@ -12,10 +12,10 @@ from rclpy.publisher import Publisher
 from visualization_msgs.msg import MarkerArray
 
 # TODO: Maybe extension points
-query_converter: Dict[str, QueryResultParser] = {
+query_parser: Dict[str, QueryResultParser] = {
     q.TYPE: q for q in [PointResultParser, PC2ResultParser, MarkerResultParser]}
 
-query_converter.update({
+query_parser.update({
     "Marker[]": BasicArrayStampedParserFactory.create_array_parser(MarkerResultParser, MarkerArray, "markers")
 })
 
@@ -53,16 +53,16 @@ class PostGisPublisher(Node):
             sql_query = self.get_parameter(f"{config}.query").value
             rate = self.get_parameter(f"{config}.rate").value
 
-            if not query_type in query_converter.keys():
+            if not query_type in query_parser.keys():
                 raise ValueError(
-                    f"Type: '{query_type}' is not supported. Supported: {query_converter.keys()}"
+                    f"Type: '{query_type}' is not supported. Supported: {query_parser.keys()}"
                 )
 
-            converter = query_converter[query_type]()
+            parser = query_parser[query_type]()
             # TODO: namespace bug in rclyp Node in declare params name initialized after value query
             self.declare_parameters(
-                namespace="", parameters=list(map(lambda x: (f"{config}.{x[0]}", x[1], x[2]), converter.declare_params())))
-            topics_msgs = converter.set_params(
+                namespace="", parameters=list(map(lambda x: (f"{config}.{x[0]}", x[1], x[2]), parser.declare_params())))
+            topics_msgs = parser.set_params(
                 self.get_parameters_by_prefix(config))
             query = Query(self.postgresql_connection, sql_query)
 
@@ -72,9 +72,9 @@ class PostGisPublisher(Node):
             self.converter_pubs.update(pubs)
 
             self.create_timer(
-                1.0/rate, partial(self.timer_callback, query, converter))
+                1.0/rate, partial(self.timer_callback, query, parser))
 
-            self.get_logger().info(f"Register converter: {str(converter)}")
+            self.get_logger().info(f"Register parser: {str(parser)}")
 
     # TODO: prefetching? Async Sessions, check performance issues (pc2 sloooooow)
     def timer_callback(self, query: Query, converter: QueryResultParser):

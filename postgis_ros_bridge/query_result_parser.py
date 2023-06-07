@@ -144,6 +144,9 @@ class MarkerResultParser(SingleElementParser):
                                            color=ColorRGBA(
                                                r=1.0, g=0.0, b=0.0, a=1.0),
                                            lifetime=Duration(sec=3)))
+    
+    def __repr__(self) -> str:
+        return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"
 
 
 class BasicArrayStampedParserFactory:
@@ -176,4 +179,8 @@ class BasicArrayStampedParserFactory:
 
                 m = msg(**args)
                 return [(self.topic, m)]
+            
+            def __repr__(self) -> str:
+                return f"{super().TYPE}[] (using frame_id: {self.frame_id} and topic: {self.topic})"
+            
         return ArrayParserMessage
