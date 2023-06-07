@@ -1,0 +1,60 @@
+postgis_ros_publisher:
+  ros__parameters:
+
+    postgresql:
+      user: "postgres"
+      pass: "postgres" # TODO: Alternative way w/o need of storing password in plaintext
+      host: "localhost"
+      port: 5432
+      schema: "test"
+
+    publish:
+      - cfg_point
+      - cfg_road
+      - cfg_building
+
+    cfg_default:
+      rate: 10.0
+
+    cfg_road: 
+      query: "SELECT id, geom AS geometry FROM road;"
+      # frame_id: "asdf" # custom or via frame_id
+      topic: "polygon"
+      frame_id: "map"
+      type: "MarkerArray"
+      marker_type: "visualization_msgs::Marker::LINE_STRIP" 
+      
+      utm_transform: true
+      utm_offset:
+        lat: "16.511422682732736"
+        lon: "47.977274686327114"
+
+      rate: 1.0
+
+    cfg_building: 
+      query: "SELECT id, geom AS geometry FROM building;"
+      # frame_id: "asdf" # custom or via frame_id
+      topic: "polygon"
+      frame_id: "map"
+      type: "MarkerArray"
+      marker_type: "visualization_msgs::Marker::LINE_STRIP" 
+      marker_ns: "buildings"
+      marker_color: [0.0, 1.0, 0.0, 1.0]
+      utm_transform: true
+      utm_offset:
+        lat: "16.511422682732736"
+        lon: "47.977274686327114"
+
+      rate: 1.0
+
+    cfg_point: 
+      query: "SELECT geom AS geometry, 'map' AS frame_id FROM landmark;"
+      type: "PointStamped" # Point2D PointCloud, Polygon Marker, Marker, Pose 
+      # frame_id: "asdf" # custom or via frame_id
+      topic: "point"
+          
+      utm_transform: true
+      utm_offset:
+        lat: "16.511422682732736"
+        lon: "47.977274686327114"
+      rate: 1.0

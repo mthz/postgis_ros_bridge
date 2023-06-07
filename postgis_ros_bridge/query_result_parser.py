@@ -32,6 +32,36 @@ class QueryResultParser(ABC):
         return self.TYPE
 
 
+
+class UTMTransformer:
+    """
+    transform from lat/lon to utm and optionally apply offset
+    """
+    def __init__(self, offset_lat=None, offset_lon=None) -> None:
+        self.utm_offset_lat = offset_lat
+        self.utm_offset_lon = offset_lon
+        self.utm_offset = True if offset_lat and offset_lon else False
+
+        from pyproj import Transformer
+        self.transformer = Transformer.from_crs(
+                {"proj":'latlong', "ellps":'WGS84', "datum":'WGS84'},
+                # {"proj":'geocent', "ellps":'WGS84', "datum":'WGS84'},
+                {"proj":'utm', "ellps":'WGS84', "datum":'WGS84', "zone":33},
+            )
+        
+        self.utm_offset_x, self.utm_offset_y = self.transformer.transform(self.utm_offset_lat, self.utm_offset_lon, radians=False)
+        
+    def transform(self, point):
+        point_utm = self.transformer.transform(point.x, point.y, radians=False)
+        point.x = point_utm[0]
+        point.y = point_utm[1]
+        if self.utm_offset:
+            point.x -= self.utm_offset_x
+            point.y -= self.utm_offset_y
+    
+        return point
+
+
 class StampedTopicParser(QueryResultParser):
     """"Base class for parsers which produce a single stamped message topic"""
     TYPE = None
@@ -42,12 +72,20 @@ class StampedTopicParser(QueryResultParser):
     def declare_params(self) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
         return [
             ('frame_id', Parameter.Type.STRING, ParameterDescriptor()),
-            ('topic', Parameter.Type.STRING, ParameterDescriptor())
+            ('topic', Parameter.Type.STRING, ParameterDescriptor()),
+            ('utm_transform', Parameter.Type.BOOL, ParameterDescriptor()),
+            ('utm_offset.lat', Parameter.Type.STRING, ParameterDescriptor()),
+            ('utm_offset.lon', Parameter.Type.STRING, ParameterDescriptor()),
         ]
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
         self.frame_id = params['frame_id'].value
         self.topic = params['topic'].value
+
+        self.utm_transform = params['utm_transform'].value
+        if self.utm_transform:
+            self.utm_transformer = UTMTransformer(params['utm_offset.lat'].value, params['utm_offset.lon'].value)
+
         return []
     
     def get_frame_id_from_config(self) -> str:
@@ -84,9 +122,12 @@ class PointResultParser(SingleElementParser):
         return super().set_params(params) + [(self.topic, PointStamped)]
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
-        return (self.topic,
-                PointStamped(header=Header(frame_id=self.get_frame_id(element), stamp=time),
-                             point=PostGisConverter.to_point(element.geometry)))
+        msg = PointStamped(header=Header(frame_id=self.get_frame_id(element), stamp=time),
+                             point=PostGisConverter.to_point(element.geometry))
+        if self.utm_transform:
+            msg.point = self.utm_transformer.transform(msg.point)
+        
+        return (self.topic, msg)
 
     def __repr__(self) -> str:
         return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"
@@ -189,24 +230,45 @@ class MarkerResultParser(SingleElementParser):
     def declare_params(self) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
         return super().declare_params() + [
             ('marker_type', Parameter.Type.STRING, ParameterDescriptor()),
+            ('marker_ns', Parameter.Type.STRING, ParameterDescriptor()),
+            ('marker_color', Parameter.Type.DOUBLE_ARRAY, ParameterDescriptor()),
         ]
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
         topics = super().set_params(params)
         self.marker_type = params['marker_type'].value
+        self.marker_ns = params['marker_ns'].value if params['marker_ns'].value else ''
+        self.marker_color = params['marker_color'].value if params['marker_color'].value else [1.0, 0.0, 0.0, 1.0]
         return topics + [(self.topic, Marker)]
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
 
         def get_id(elem):
             return elem.id if hasattr(elem, 'id') else 0
-
+        
+        if self.marker_type == 'visualization_msgs::Marker::LINE_STRIP':
+            msg = PostGisConverter.to_marker_polygon(header=Header(frame_id=self.get_frame_id(element), stamp=time),
+                                           geometry=element.geometry,
+                                           action=Marker.MODIFY,
+                                           id=get_id(element),
+                                           ns=self.marker_ns,
+                                           type=Marker.LINE_STRIP,
+                                           scale=Vector3(x=1.0, y=0.0, z=0.0),
+                                           color=ColorRGBA(
+                                               r=self.marker_color[0], g=self.marker_color[1], b=self.marker_color[2], a=self.marker_color[3]),
+                                           lifetime=Duration(sec=3))
+            # utm_transformer = UTMTransformer()
+            if self.utm_transform:
+                msg.points = [self.utm_transformer.transform(point) for point in msg.points]
+            return (self.topic, msg)
+        
         return (self.topic,
                 PostGisConverter.to_marker(header=Header(frame_id=self.get_frame_id(element), stamp=time),
                                            geometry=element.geometry,
                                            orientation=element.rotation,
                                            action=Marker.MODIFY,
                                            id=get_id(element),
+                                           ns=self.marker_ns,
                                            type=Marker.ARROW,
                                            scale=Vector3(x=0.1, y=0.1, z=0.1),
                                            color=ColorRGBA(

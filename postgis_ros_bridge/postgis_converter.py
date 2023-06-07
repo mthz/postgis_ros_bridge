@@ -13,7 +13,7 @@ class PostGisConverter:
         if not geometry:
             return Point(x=0.0, y=0.0, z=0.0)
         point = wkb.loads(geometry, hex=hex)
-        return Point(x=point.x, y=point.y, z=point.z)
+        return Point(x=point.x, y=point.y, z=point.z if point.has_z else 0.0)
 
     @staticmethod
     def to_point_tuple(geometry, hex=True):
@@ -23,6 +23,24 @@ class PostGisConverter:
     @staticmethod
     def to_marker(header, geometry, orientation, hex=True, *args, **kwargs) -> Marker:
         return Marker(header=header, pose=PostGisConverter.to_pose(geometry, orientation, hex=hex), *args, **kwargs)
+
+    @staticmethod
+    def to_marker_polygon(header, geometry, hex=True, *args, **kwargs):
+        geometry = wkb.loads(geometry, hex=hex)
+        points = []
+        if geometry.geom_type == "LineString":
+            points = [Point(x=point[0], y=point[1], z=point[2] if len(point) > 2 else 0.0) for point in geometry.coords]
+        elif geometry.geom_type == "Polygon":
+            # TODO untested
+            points = [Point(x=point[0], y=point[1], z=point[2] if len(point) > 2 else 0.0) for point in geometry.exterior.coords]
+        elif geometry.geom_type == "MultiPolygon":
+            # TODO: output only first polygon of multipolygon 
+            geom = geometry.geoms[0] 
+            points = [Point(x=point[0], y=point[1], z=point[2] if len(point) > 2 else 0.0) for point in geom.exterior.coords]
+        else:
+            raise ValueError(f"Unsupported geometry type: {geometry.geom_type}")
+        return Marker(header=header, points=points, *args, **kwargs)
+
 
     @staticmethod
     def to_orientation(orientation: Union[bytes, str], hex=True) -> Quaternion:
