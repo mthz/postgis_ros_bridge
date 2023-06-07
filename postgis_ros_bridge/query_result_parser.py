@@ -235,6 +235,7 @@ class MarkerResultParser(SingleElementParser):
             ('marker_type', Parameter.Type.STRING, ParameterDescriptor()),
             ('marker_ns', Parameter.Type.STRING, ParameterDescriptor()),
             ('marker_color', Parameter.Type.DOUBLE_ARRAY, ParameterDescriptor()),
+            ('marker_scale', Parameter.Type.DOUBLE_ARRAY, ParameterDescriptor()),
         ]
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
@@ -243,6 +244,8 @@ class MarkerResultParser(SingleElementParser):
         self.marker_ns = params['marker_ns'].value if params['marker_ns'].value else ''
         self.marker_color = params['marker_color'].value if params['marker_color'].value else [
             1.0, 0.0, 0.0, 1.0]
+        self.marker_scale = params['marker_scale'].value if params['marker_scale'].value else [
+            0.1, 0.1, 0.1]
         return topics + [(self.topic, Marker)]
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
@@ -250,36 +253,34 @@ class MarkerResultParser(SingleElementParser):
         def get_id(elem):
             return elem.id if hasattr(elem, 'id') else 0
 
-        if self.marker_type == 'visualization_msgs::Marker::LINE_STRIP':
-            msg = PostGisConverter.to_marker_polygon(header=Header(frame_id=self.get_frame_id(element), stamp=time),
-                                                     geometry=element.geometry,
-                                                     action=Marker.MODIFY,
-                                                     id=get_id(element),
-                                                     ns=self.marker_ns,
-                                                     type=Marker.LINE_STRIP,
-                                                     scale=Vector3(
-                                                         x=1.0, y=0.0, z=0.0),
-                                                     color=ColorRGBA(
-                r=self.marker_color[0], g=self.marker_color[1], b=self.marker_color[2], a=self.marker_color[3]),
-                lifetime=Duration(sec=3))
-            # utm_transformer = UTMTransformer()
-            if self.utm_transform:
-                msg.points = [self.utm_transformer.transform(
-                    point) for point in msg.points]
-            return (self.topic, msg)
+        marker_color = ColorRGBA(r=self.marker_color[0], g=self.marker_color[1], b=self.marker_color[2], a=self.marker_color[3])
+        marker_types = {
+            "visualization_msgs::Marker::ARROW": Marker.ARROW,
+            "visualization_msgs::Marker::CUBE": Marker.CUBE,
+            "visualization_msgs::Marker::SPHERE": Marker.SPHERE,
+            "visualization_msgs::Marker::CYLINDER": Marker.CYLINDER,
+        }
+        marker_type = marker_types.get(self.marker_type, Marker.ARROW)
+        marker_scale = Vector3(x=self.marker_scale[0], y=self.marker_scale[1], z=self.marker_scale[2])
 
-        return (self.topic,
-                PostGisConverter.to_marker(header=Header(frame_id=self.get_frame_id(element), stamp=time),
+        msg = PostGisConverter.to_marker(header=Header(frame_id=self.get_frame_id(element), stamp=time),
                                            geometry=element.geometry,
-                                           orientation=element.rotation,
+                                           orientation=None,
                                            action=Marker.MODIFY,
                                            id=get_id(element),
                                            ns=self.marker_ns,
-                                           type=Marker.ARROW,
-                                           scale=Vector3(x=0.1, y=0.1, z=0.1),
-                                           color=ColorRGBA(
-                                               r=1.0, g=0.0, b=0.0, a=1.0),
-                                           lifetime=Duration(sec=3)))
+                                           type=marker_type,
+                                           scale=marker_scale,
+                                           color=marker_color,
+                                           lifetime=Duration(sec=3))
+        if self.utm_transform:
+                msg.points = [self.utm_transformer.transform(
+                    point) for point in msg.points]
+                # todo handle orientation
+                if msg.type not in [Marker.LINE_STRIP, Marker.LINE_LIST, Marker.POINTS]:
+                    msg.pose.position = self.utm_transformer.transform(msg.pose.position)
+                
+        return (self.topic,                msg)
 
     def __repr__(self) -> str:
         return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"
