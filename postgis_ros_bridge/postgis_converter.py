@@ -19,7 +19,7 @@ class PostGisConverter:
     @staticmethod
     def to_point_tuple(geometry: Union[bytes, str], hex=True):
         point = wkb.loads(geometry, hex=hex)
-        return (point.x, point.y, point.z)
+        return (point.x, point.y, point.z) if point.has_z else (point.x, point.y)
 
     @staticmethod
     def to_marker(header: Header, geometry: Union[bytes, str], orientation: Union[bytes, str], hex=True, *args, **kwargs) -> Marker:
