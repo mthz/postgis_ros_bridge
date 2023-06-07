@@ -2,16 +2,17 @@ from functools import partial
 from typing import Dict
 
 import rclpy
+from geometry_msgs.msg import PoseArray
 from postgresql_connection import PostgreSQLConnection
 from query import Query
 from query_result_parser import (BasicStampedArrayParserFactory,
                                  MarkerResultParser, PC2ResultParser,
-                                 PointResultParser, PoseResultParser,
-                                 PoseStampedResultParser, PolygonResultParser, PolygonStampedResultParser, QueryResultParser)
+                                 PointResultParser, PolygonResultParser,
+                                 PolygonStampedResultParser, PoseResultParser,
+                                 PoseStampedResultParser, QueryResultParser)
 from rclpy.node import Node
 from rclpy.publisher import Publisher
 from visualization_msgs.msg import MarkerArray
-from geometry_msgs.msg import PoseArray
 
 # TODO: Maybe extension points
 query_parser: Dict[str, QueryResultParser] = {

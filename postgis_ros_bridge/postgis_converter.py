@@ -29,18 +29,21 @@ class PostGisConverter:
         geometry = wkb.loads(geometry, hex=hex)
         points = []
         if geometry.geom_type == "LineString":
-            points = [Point(x=point[0], y=point[1], z=point[2] if len(point) > 2 else 0.0) for point in geometry.coords]
+            points = [Point(x=point[0], y=point[1], z=point[2] if len(
+                point) > 2 else 0.0) for point in geometry.coords]
         elif geometry.geom_type == "Polygon":
             # TODO untested
-            points = [Point(x=point[0], y=point[1], z=point[2] if len(point) > 2 else 0.0) for point in geometry.exterior.coords]
+            points = [Point(x=point[0], y=point[1], z=point[2] if len(
+                point) > 2 else 0.0) for point in geometry.exterior.coords]
         elif geometry.geom_type == "MultiPolygon":
-            # TODO: output only first polygon of multipolygon 
-            geom = geometry.geoms[0] 
-            points = [Point(x=point[0], y=point[1], z=point[2] if len(point) > 2 else 0.0) for point in geom.exterior.coords]
+            # TODO: output only first polygon of multipolygon
+            geom = geometry.geoms[0]
+            points = [Point(x=point[0], y=point[1], z=point[2] if len(
+                point) > 2 else 0.0) for point in geom.exterior.coords]
         else:
-            raise ValueError(f"Unsupported geometry type: {geometry.geom_type}")
+            raise ValueError(
+                f"Unsupported geometry type: {geometry.geom_type}")
         return Marker(header=header, points=points, *args, **kwargs)
-
 
     @staticmethod
     def to_orientation(orientation: Union[bytes, str], hex=True) -> Quaternion:
