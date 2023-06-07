@@ -217,7 +217,7 @@ class PolygonStampedResultParser(SingleElementParser):
         return super().set_params(params) + [(self.topic, PolygonStamped)]
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
-        return (self.topic, PostGisConverter.to_polygon_stamped(element.geometry,
+        return (self.topic, PostGisConverter.to_polygon_stamped(geometry=element.geometry,
                                                                 header=Header(frame_id=self.get_frame_id(element), stamp=time)))
 
     def __repr__(self) -> str:
