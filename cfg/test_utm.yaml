@@ -4,7 +4,7 @@ postgis_ros_publisher:
     postgresql:
       user: "postgres"
       pass: "postgres" # TODO: Alternative way w/o need of storing password in plaintext
-      host: "localhost"
+      host: "L1AS17"
       port: 5432
       schema: "test"
 

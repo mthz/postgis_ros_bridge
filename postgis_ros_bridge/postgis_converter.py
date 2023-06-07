@@ -1,5 +1,6 @@
 from typing import Union
 
+from std_msgs.msg import Header
 from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion, Polygon, PolygonStamped, Point32
 from scipy.spatial.transform import Rotation
 from shapely import wkb
@@ -9,23 +10,23 @@ from visualization_msgs.msg import Marker
 class PostGisConverter:
 
     @staticmethod
-    def to_point(geometry, hex=True) -> Point:
+    def to_point(geometry: Union[bytes, str], hex=True) -> Point:
         if not geometry:
             return Point(x=0.0, y=0.0, z=0.0)
         point = wkb.loads(geometry, hex=hex)
         return Point(x=point.x, y=point.y, z=point.z if point.has_z else 0.0)
 
     @staticmethod
-    def to_point_tuple(geometry, hex=True):
+    def to_point_tuple(geometry: Union[bytes, str], hex=True):
         point = wkb.loads(geometry, hex=hex)
         return (point.x, point.y, point.z)
 
     @staticmethod
-    def to_marker(header, geometry, orientation, hex=True, *args, **kwargs) -> Marker:
-        return Marker(header=header, pose=PostGisConverter.to_pose(geometry, orientation, hex=hex), *args, **kwargs)
+    def to_marker(header: Header, geometry: Union[bytes, str], orientation: Union[bytes, str], hex=True, *args, **kwargs) -> Marker:
+        return Marker(header=header, pose=PostGisConverter.to_pose(geometry=geometry, orientation=orientation, hex=hex), *args, **kwargs)
 
     @staticmethod
-    def to_marker_polygon(header, geometry, hex=True, *args, **kwargs):
+    def to_marker_polygon(header: Header, geometry: Union[bytes, str], hex=True, *args, **kwargs):
         geometry = wkb.loads(geometry, hex=hex)
         points = []
         if geometry.geom_type == "LineString":
@@ -55,14 +56,14 @@ class PostGisConverter:
         return Quaternion(x=q[0], y=q[1], z=q[2], w=q[3])
 
     @staticmethod
-    def to_pose(geometry, orientation, hex=True) -> Pose:
+    def to_pose(geometry: Union[bytes, str], orientation: Union[bytes, str], hex=True) -> Pose:
         position = PostGisConverter.to_point(geometry)
         orientation = PostGisConverter.to_orientation(orientation)
         return Pose(position=position, orientation=orientation)
 
     @staticmethod
-    def to_pose_stamped(geometry, orientation, header, hex=True) -> PoseStamped:
-        pose = PostGisConverter.to_pose(geometry, orientation, hex=hex)
+    def to_pose_stamped(header: Header, geometry: Union[bytes, str], orientation: Union[bytes, str], hex=True) -> PoseStamped:
+        pose = PostGisConverter.to_pose(geometry=geometry, orientation=orientation, hex=hex)
         return PoseStamped(header=header, pose=pose)
 
     @staticmethod
@@ -72,6 +73,6 @@ class PostGisConverter:
             points=[Point32(x=x, y=y, z=z) for x, y, z in polygon.boundary.coords]) if polygon.has_z else Polygon(points=[Point32(x=x, y=y, z=0.0) for x, y in polygon.boundary.coords])
 
     @staticmethod
-    def to_polygon_stamped(geometry: Union[bytes, str], header, hex=True) -> PolygonStamped:
+    def to_polygon_stamped(header: Header, geometry: Union[bytes, str], hex=True) -> PolygonStamped:
         polygon = PostGisConverter.to_polygon(geometry, hex=hex)
         return PolygonStamped(header=header, polygon=polygon)
