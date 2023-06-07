@@ -16,7 +16,7 @@ query_parser: Dict[str, QueryResultParser] = {
     q.TYPE: q for q in [PointResultParser, PC2ResultParser, MarkerResultParser]}
 
 query_parser.update({
-    "Marker[]": BasicStampedArrayParserFactory.create_array_parser(MarkerResultParser, MarkerArray, "markers")
+    "MarkerArray": BasicStampedArrayParserFactory.create_array_parser(MarkerResultParser, MarkerArray, "markers")
 })
 
 

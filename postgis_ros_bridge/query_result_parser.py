@@ -66,7 +66,7 @@ class SingleElementParser(StampedTopicParser):
 
 
 class PointResultParser(SingleElementParser):
-    TYPE = "Point3D"
+    TYPE = "PointStamped"
 
     def __init__(self) -> None:
         super().__init__()
@@ -181,6 +181,6 @@ class BasicStampedArrayParserFactory:
                 return [(self.topic, m)]
             
             def __repr__(self) -> str:
-                return f"{super().TYPE}[] (using frame_id: {self.frame_id} and topic: {self.topic})"
+                return f"{super().TYPE}Array (using frame_id: {self.frame_id} and topic: {self.topic})"
             
         return ArrayParserMessage

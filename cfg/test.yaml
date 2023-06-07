@@ -19,8 +19,7 @@ postgis_ros_publisher:
 
     cfg_point:
       query: "SELECT position AS geometry, 'test_frame_id' AS frame_id FROM landmark;"
-      type: "Point3D" # Point2D PointCloud, Polygon Marker, Marker, Pose
-      # frame_id: "asdf" # custom or via frame_id
+      type: "PointStamped" 
       topic: "point"
       rate: 10.0
 
@@ -42,7 +41,7 @@ postgis_ros_publisher:
 
     cfg_marker_array:
       query: "SELECT ROW_NUMBER() OVER (ORDER BY pose.id) AS id, pose.position AS geometry, pose.rotation_vector AS rotation, 'test_frame_id' AS frame_id FROM pose;"
-      type: "Marker[]"
+      type: "MarkerArray"
       marker_type: "visualization_msgs::Marker::SPHERE" # marker_type or here | default sphere
       topic: "marker_array"
       frame_id: "test_frame_id" # custom
