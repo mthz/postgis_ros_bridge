@@ -6,14 +6,15 @@ from postgresql_connection import PostgreSQLConnection
 from query import Query
 from query_result_parser import (BasicStampedArrayParserFactory,
                                  MarkerResultParser, PC2ResultParser,
-                                 PointResultParser, QueryResultParser)
+                                 PointResultParser, PoseStampedResultParser,
+                                 QueryResultParser)
 from rclpy.node import Node
 from rclpy.publisher import Publisher
 from visualization_msgs.msg import MarkerArray
 
 # TODO: Maybe extension points
 query_parser: Dict[str, QueryResultParser] = {
-    q.TYPE: q for q in [PointResultParser, PC2ResultParser, MarkerResultParser]}
+    q.TYPE: q for q in [PointResultParser, PoseStampedResultParser, PC2ResultParser, MarkerResultParser]}
 
 query_parser.update({
     "MarkerArray": BasicStampedArrayParserFactory.create_array_parser(MarkerResultParser, MarkerArray, "markers")

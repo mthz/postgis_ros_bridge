@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterable, Tuple
 
 from builtin_interfaces.msg import Duration, Time
-from geometry_msgs.msg import PointStamped, Vector3
+from geometry_msgs.msg import PointStamped, Vector3, PoseStamped
 from postgis_converter import PostGisConverter
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.parameter import Parameter
@@ -82,6 +82,27 @@ class PointResultParser(SingleElementParser):
                 PointStamped(header=Header(frame_id=get_frame_id(element), stamp=time),
                              point=PostGisConverter.to_point(element.geometry)))
 
+    def __repr__(self) -> str:
+        return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"
+
+
+class PoseStampedResultParser(SingleElementParser):
+    TYPE = "PoseStamped"
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
+        return super().set_params(params) + [(self.topic, PoseStamped)]
+    
+    def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
+        def get_frame_id(elem):
+            return self.frame_id if self.frame_id else elem.frame_id if hasattr(elem, 'frame_id') else 'map'
+
+        return (self.topic,
+                PoseStamped(header=Header(frame_id=get_frame_id(element), stamp=time),
+                            pose=PostGisConverter.to_pose(element.geometry, element.rotation)))
+    
     def __repr__(self) -> str:
         return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"
 
