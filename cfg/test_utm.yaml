@@ -4,7 +4,7 @@ postgis_ros_publisher:
     postgresql:
       user: "postgres"
       pass_env: "POSTGRES_PASSWORD" # read password from environment variable
-      pass: "" # directly provides password (overwrites password from envrionment variable)
+      pass: "postgres" # directly provides password (overwrites password from envrionment variable)
       host: "L1AS17"
       port: 5432
       schema: "test"
@@ -13,15 +13,19 @@ postgis_ros_publisher:
       - query_point
       - query_road
       - query_building
+      - query_pointcloud
+      - query_polygon
+      - query_polygon_stamped
 
 
+    # special section for default values for all queries
     query_defaults:
       frame_id: "map"
       rate: 1.0
       utm_transform: false
       utm_offset:
-          lat: "16.511422682732736"
-          lon: "47.977274686327114"
+          lat: 16.511422682732736
+          lon: 47.977274686327114
 
     query_road: 
       query: "SELECT id, geom AS geometry FROM road;"
@@ -58,4 +62,21 @@ postgis_ros_publisher:
       marker_ns: "landmarks"
       marker_scale: [2.0, 2.0, 2.0]
 
-      # rate: 1.0
+
+    query_pointcloud: 
+      query: "SELECT geom AS geometry FROM landmark;"
+      type: "PointCloud2" # Point2D PointCloud, Polygon Marker, Marker, Pose 
+      topic: "pointcloud"
+      utm_transform: true
+
+    query_polygon: 
+      query: "SELECT ST_MakePolygon( 'LINESTRING(16.511422682732736 47.977274686327114 0, 16.511422682732736 47.977274686327114 2, 16.511422682732736 47.977296686329114 2   , 16.511422682732736 47.977274686327114 0)') AS geometry;"
+      type: "Polygon"
+      topic: "polygon"
+      utm_transform: true
+
+    query_polygon_stamped: 
+      query: "SELECT ST_MakePolygon( 'LINESTRING(16.511422682732736 47.977274686327114 0, 16.511422682732736 47.977274686327114 2, 16.511422682732736 47.977296686329114 2   , 16.511422682732736 47.977274686327114 0)') AS geometry;"
+      type: "PolygonStamped"
+      topic: "polygon_stamped"
+      utm_transform: true

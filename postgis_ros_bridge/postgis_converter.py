@@ -26,9 +26,9 @@ class PostGisConverter:
         return Point(x=point.x, y=point.y, z=point.z if point.has_z else 0.0)
 
     @staticmethod
-    def to_point_tuple(geometry: Union[bytes, str], hex=True):
+    def to_point_xyz(geometry: Union[bytes, str], hex=True):
         point = wkb.loads(geometry, hex=hex)
-        return (point.x, point.y, point.z) if point.has_z else (point.x, point.y)
+        return (point.x, point.y, point.z if point.has_z else 0.0)
 
     @staticmethod
     def to_orientation(orientation: Union[bytes, str], hex=True) -> Quaternion:
@@ -101,7 +101,7 @@ class PostGisConverter:
     def to_polygon(geometry: Union[bytes, str], hex=True) -> Polygon:
         polygon = wkb.loads(geometry, hex=hex)
         return Polygon(
-            points=[Point32(x=x, y=y, z=z) for x, y, z in polygon.boundary.coords]) if polygon.has_z else Polygon(points=[Point32(x=x, y=y, z=0.0) for x, y in polygon.boundary.coords])
+            points=[Point32(x=point[0], y=point[1], z=point[2] if polygon.has_z else 0.0) for point in polygon.boundary.coords])
 
     @staticmethod
     def to_polygon_stamped(header: Header, geometry: Union[bytes, str], hex=True) -> PolygonStamped:
