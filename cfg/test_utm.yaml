@@ -3,7 +3,8 @@ postgis_ros_publisher:
 
     postgresql:
       user: "postgres"
-      pass: "postgres" # TODO: Alternative way w/o need of storing password in plaintext
+      pass_env: "POSTGRES_PASSWORD" # read password from environment variable
+      pass: "" # directly provides password (overwrites password from envrionment variable)
       host: "L1AS17"
       port: 5432
       schema: "test"

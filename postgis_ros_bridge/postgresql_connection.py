@@ -2,7 +2,7 @@ from contextlib import AbstractContextManager
 
 from rclpy.node import Node
 from sqlalchemy import create_engine
-
+import os
 
 class PostgreSQLConnection(AbstractContextManager):
     def __init__(self, node: Node):
@@ -11,7 +11,8 @@ class PostgreSQLConnection(AbstractContextManager):
             namespace="",
             parameters=[
                 (f"{ns}.user", "postgres"),
-                (f"{ns}.pass", "postgres"),
+                (f"{ns}.pass", ""),
+                (f"{ns}.pass_env", ""),
                 (f"{ns}.host", "localhost"),
                 (f"{ns}.port", 5432),
                 (f"{ns}.schema", "public"),
@@ -20,6 +21,14 @@ class PostgreSQLConnection(AbstractContextManager):
 
         user = node.get_parameter(f"{ns}.user").value
         passwd = node.get_parameter(f"{ns}.pass").value
+        if not passwd:
+            passwd_env = node.get_parameter(f"{ns}.pass_env").value
+            try:
+                passwd = os.environ[passwd_env]
+            except KeyError:
+                raise ValueError(
+                    f"Environment variable '{passwd_env}' is not set.")
+
         host = node.get_parameter(f"{ns}.host").value
         port = node.get_parameter(f"{ns}.port").value
         schema = node.get_parameter(f"{ns}.schema").value
