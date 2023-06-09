@@ -44,24 +44,24 @@ def test_to_point_hex():
         assert ros_point.z == pytest.approx(point[2]), f"check z for {wkb_point}"
 
 
-def test_to_point_tuple():
+def test_to_point_xyz():
     for wkb_point, point in wkb_point_to_point.items():
-        point_tuple = PostGisConverter.to_point_tuple(geometry=wkt.loads(wkb_point).wkb, hex=False)
+        point_tuple = PostGisConverter.to_point_xyz(geometry=wkt.loads(wkb_point).wkb, hex=False)
         assert point_tuple[0] == pytest.approx(point[0]), f"check x for {wkb_point}"
         assert point_tuple[1] == pytest.approx(point[1]), f"check y for {wkb_point}"
         if len(point_tuple) == 3:
             assert point_tuple[2] == pytest.approx(point[2]), f"check z for {wkb_point}"
 
 
-def test_to_point_tuple_hex():
+def test_to_point_xyz_hex():
     for wkb_point, point in wkb_point_to_point.items():
-        point_tuple = PostGisConverter.to_point_tuple(geometry=wkt.loads(wkb_point).wkb_hex, hex=True)
+        point_tuple = PostGisConverter.to_point_xyz(geometry=wkt.loads(wkb_point).wkb_hex, hex=True)
         assert point_tuple[0] == pytest.approx(point[0]), f"check x for {wkb_point}"
         assert point_tuple[1] == pytest.approx(point[1]), f"check y for {wkb_point}"
         if len(point_tuple) == 3:
             assert point_tuple[2] == pytest.approx(point[2]), f"check z for {wkb_point}"
     for wkb_point, point in wkb_point_to_point.items():
-        point_tuple = PostGisConverter.to_point_tuple(geometry=wkt.loads(wkb_point).wkb_hex)
+        point_tuple = PostGisConverter.to_point_xyz(geometry=wkt.loads(wkb_point).wkb_hex)
         assert point_tuple[0] == pytest.approx(point[0]), f"check x for {wkb_point}"
         assert point_tuple[1] == pytest.approx(point[1]), f"check y for {wkb_point}"
         if len(point_tuple) == 3:
