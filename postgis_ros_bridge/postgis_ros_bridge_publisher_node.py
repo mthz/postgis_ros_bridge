@@ -9,7 +9,7 @@ from postgis_ros_bridge.query_result_parser import (BasicStampedArrayParserFacto
                                  MarkerResultParser, PC2ResultParser,
                                  PointResultParser, PolygonResultParser,
                                  PolygonStampedResultParser, PoseResultParser,
-                                 PoseStampedResultParser, QueryResultParser)
+                                 PoseStampedResultParser, QueryResultParser, QueryResultDefaultParameters)
 from rclpy.node import Node
 from rclpy.publisher import Publisher
 from visualization_msgs.msg import MarkerArray
@@ -55,14 +55,22 @@ class PostGisPublisher(Node):
         self.postgresql_connection = PostgreSQLConnection(self)
         self.get_logger().info(
             f"Connected to database via {self.postgresql_connection}")
+        
+        # get common default settings
+        default_section_name = "query_defaults"
+        default_parameters = QueryResultDefaultParameters()
+        self.declare_parameters(
+                namespace="", parameters=list(map(lambda x: (f"{default_section_name}.{x[0]}", x[1], x[2]), default_parameters.declare_params())))
+        default_parameters.set_params(self.get_parameters_by_prefix(default_section_name))
 
+        
         for config in configurations:
             self.declare_parameters(
                 namespace="",
                 parameters=[
                     (f"{config}.query", rclpy.Parameter.Type.STRING),
-                    (f"{config}.rate", rclpy.Parameter.Type.DOUBLE),
-                    (f"{config}.type", rclpy.Parameter.Type.STRING)
+                    (f"{config}.rate", default_parameters.rate),
+                    (f"{config}.type", rclpy.Parameter.Type.STRING),
                 ],
             )
             query_type = self.get_parameter(f"{config}.type").value
@@ -77,7 +85,7 @@ class PostGisPublisher(Node):
             parser = query_parser[query_type]()
             # TODO: namespace bug in rclyp Node in declare params name initialized after value query
             self.declare_parameters(
-                namespace="", parameters=list(map(lambda x: (f"{config}.{x[0]}", x[1], x[2]), parser.declare_params())))
+                namespace="", parameters=list(map(lambda x: (f"{config}.{x[0]}", x[1], x[2]), parser.declare_params(default_parameters))))
             topics_msgs = parser.set_params(
                 self.get_parameters_by_prefix(config))
             query = Query(self.postgresql_connection, sql_query)

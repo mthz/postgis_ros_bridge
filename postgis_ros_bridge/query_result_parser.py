@@ -13,11 +13,54 @@ from std_msgs.msg import ColorRGBA, Header
 from visualization_msgs.msg import Marker
 
 
+
+
+class QueryResultDefaultParameters:
+    def __init__(self):
+        pass
+
+    def declare_params(self) -> Iterable[Tuple[str, Any]]:
+        return [
+                    (f"rate", 7.0, ParameterDescriptor()),
+                    (f"frame_id", "map", ParameterDescriptor()),
+                    (f"utm_transform", False, ParameterDescriptor()),
+                    (f"utm_offset.lat", Parameter.Type.STRING, ParameterDescriptor()),
+                    (f"utm_offset.lon", Parameter.Type.STRING, ParameterDescriptor())
+                ]
+
+    def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
+        self._rate = params['rate'].value
+        self._frame_id = params['frame_id'].value
+        self._utm_transform = params['utm_transform'].value
+        self._utm_offset_lat = params['utm_offset.lat'].value
+        self._utm_offset_lon = params['utm_offset.lon'].value
+
+    @property
+    def rate(self):
+        return self._rate
+
+    @property
+    def frame_id(self):
+        return self._frame_id
+
+    @property 
+    def utm_transform(self):
+        return self._utm_transform
+    
+    @property 
+    def utm_offset_lat(self):
+        return self._utm_offset_lat
+    
+    @property 
+    def utm_offset_lon(self):
+        return self._utm_offset_lon
+
+
 class QueryResultParser(ABC):
     TYPE = "AbstractParser"
 
     @abstractmethod
-    def declare_params(self) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
+    def declare_params(self, defaults: QueryResultDefaultParameters) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
         return []
 
     @abstractmethod
@@ -70,20 +113,22 @@ class StampedTopicParser(QueryResultParser):
     def __init__(self) -> None:
         super().__init__()
 
-    def declare_params(self) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
+    def declare_params(self, defaults: QueryResultDefaultParameters) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
         return [
-            ('frame_id', Parameter.Type.STRING, ParameterDescriptor()),
+            ('frame_id', defaults.frame_id, ParameterDescriptor()),
             ('topic', Parameter.Type.STRING, ParameterDescriptor()),
-            ('utm_transform', Parameter.Type.BOOL, ParameterDescriptor()),
-            ('utm_offset.lat', Parameter.Type.STRING, ParameterDescriptor()),
-            ('utm_offset.lon', Parameter.Type.STRING, ParameterDescriptor()),
+            ('utm_transform', defaults.utm_transform, ParameterDescriptor()),
+            ('utm_offset.lat', defaults.utm_offset_lat, ParameterDescriptor()),
+            ('utm_offset.lon',  defaults.utm_offset_lon, ParameterDescriptor()),
         ]
-
+    
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
+
         self.frame_id = params['frame_id'].value
         self.topic = params['topic'].value
-
-        self.utm_transform = params['utm_transform'].value
+        self.utm_transform = params['utm_transform'].value 
+        self.utm_offset_lat = params['utm_offset.lat'].value
+        self.utm_offset_lon = params['utm_offset.lon'].value
         if self.utm_transform:
             self.utm_transformer = UTMTransformer(
                 params['utm_offset.lat'].value, params['utm_offset.lon'].value)
@@ -230,8 +275,8 @@ class MarkerResultParser(SingleElementParser):
     def __init__(self) -> None:
         super().__init__()
 
-    def declare_params(self) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
-        return super().declare_params() + [
+    def declare_params(self, defaults: QueryResultDefaultParameters) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
+        return super().declare_params(defaults) + [
             ('marker_type', Parameter.Type.STRING, ParameterDescriptor()),
             ('marker_ns', Parameter.Type.STRING, ParameterDescriptor()),
             ('marker_color', Parameter.Type.DOUBLE_ARRAY, ParameterDescriptor()),
