@@ -45,23 +45,45 @@ def test_simple_dummy_db_connection(db_session_test_db):
     result = session.execute(text("SELECT * FROM point"))
     assert result.rowcount == 5
 
-def test_point_result_parser(db_session_test_db):
-    session = db_session_test_db
+
+params = {
+        'rate': Parameter(name='rate', value=1), 
+        'frame_id': Parameter(name='frame_id', value='test_frame_id'), 
+        'topic': Parameter(name='topic', value='test_topic'),
+        'utm_transform': Parameter(name='utm_transform', value=False),
+        'utm_offset.lat': Parameter(name='utm_offset.lat', value=0.0),
+        'utm_offset.lon': Parameter(name='utm_offset.lon', value=0.0),
+                        }
+
+@pytest.fixture
+def query_result_default_parameters():
+    """Create a default parameter object."""
     defaults = QueryResultDefaultParameters()
     defaults.declare_params()
-    defaults.set_params({
-            'rate': Parameter(name='rate', value=1), 
-            'frame_id': Parameter(name='frame_id', value='test_frame_id'), 
-            'utm_transform': Parameter(name='utm_transform', value=False),
-            'utm_offset.lat': Parameter(name='utm_offset.lat', value=0.0),
-            'utm_offset.lon': Parameter(name='utm_offset.lon', value=0.0),
-                         })
+    defaults.set_params(params)
+    return defaults
 
-    # point_result_parser = PointResultParser()
-    # point_result_parser.declare_params(defaults=defaults)
-    # point_result_parser.set_params(defaults.declare_params())
-    # test = point_result_parser.parse_single_element(element=session.execute(text("SELECT point.geom AS geometry, 'test_frame_id' AS frame_id FROM point")).fetchone(), time=Time())
+@pytest.fixture
+def point_result_parser(query_result_default_parameters):
+    """Create a point result parser."""
+    defaults = query_result_default_parameters
+    prp = PointResultParser()
+    prp.declare_params(defaults=defaults)
+    prp.set_params(params=params)
+    return prp
 
+def test_point_result_parser(db_session_test_db, point_result_parser):
+    prp = point_result_parser
+    db = db_session_test_db
 
-    # session.execute(text("SELECT * FROM point"))
-    # print("test_example_postgres")
+    for element in db.execute(text("SELECT ROW_NUMBER() OVER (ORDER BY point.id) AS id, point.geom AS geometry, 'test_frame_id' AS frame_id FROM point")).all():
+        res = prp.parse_single_element(element=element, time=Time())
+        assert res[0], 'check if topic is set'
+        topic = res[0]
+        assert params['topic'].value == topic, 'check if topic is set correctly'
+        assert res[1], 'check if point is set'
+        point = res[1].point
+        assert point.x == pytest.approx(element.id-1), 'check if point.x is set correctly'
+        assert point.y == pytest.approx(element.id-1), 'check if point.y is set correctly'
+        assert point.z == pytest.approx(element.id-1), 'check if point.z is set correctly'    
+    
