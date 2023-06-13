@@ -1,11 +1,13 @@
 
-from postgis_ros_bridge.query_result_parser import QueryResultDefaultParameters, PointResultParser, PoseResultParser, PoseStampedResultParser
+from postgis_ros_bridge.query_result_parser import QueryResultDefaultParameters, PointResultParser, PoseResultParser, PoseStampedResultParser, PC2ResultParser
 from shapely import wkt
 from scipy.spatial.transform import Rotation
 from std_msgs.msg import Header
 from builtin_interfaces.msg import Duration, Time
 from rclpy.parameter import Parameter
 
+from sensor_msgs.msg import PointCloud2
+from sensor_msgs_py import point_cloud2
 
 from pytest_postgresql import factories
 from sqlalchemy import create_engine, text
@@ -165,3 +167,38 @@ def test_pose_stamped_result_parser(db_session_test_db, pose_stamped_result_pars
         assert rot.y == pytest.approx(gt_rot[1]), 'check if rot.y is set correctly'
         assert rot.z == pytest.approx(gt_rot[2]), 'check if rot.z is set correctly'
         assert rot.w == pytest.approx(gt_rot[3]), 'check if rot.w is set correctly'
+
+
+@pytest.fixture
+def pc2_result_parser(query_result_default_parameters):
+    """Create a pc2 result parser."""
+    defaults = query_result_default_parameters
+    prp = PC2ResultParser()
+    prp.declare_params(defaults=defaults)
+    prp.set_params(params=params)
+    return prp
+
+def test_pc2_result_parser(db_session_test_db, pc2_result_parser):
+    '''Test if the pc2 result parser works.'''
+    prp = pc2_result_parser
+    db = db_session_test_db
+
+    assert prp.TYPE == 'PointCloud2', 'check if type is set correctly'
+
+    db_res = db.execute(text("SELECT ROW_NUMBER() OVER (ORDER BY point.id) AS id, point.geom AS geometry, 'test_frame_id' AS frame_id FROM point"))
+    res = prp.parse_result(result=db_res, time=Time())
+    assert len(res) == 1, 'check if one result is returned'
+    res = res[0]
+    assert res[0], 'check if topic is set'
+    topic = res[0]
+    assert params['topic'].value == topic, 'check if topic is set correctly'
+    assert res[1], 'check if pc is set'
+    pc = res[1]
+    assert pc.height == 1, 'check if pc.height is set correctly'
+    assert pc.width == 5, 'check if pc.width is set correctly'
+
+    pc_numpy = point_cloud2.read_points(pc, skip_nans=True)
+    for i, point in enumerate(pc_numpy):
+        assert point[0] == pytest.approx(i), 'check if point.x is set correctly'
+        assert point[1] == pytest.approx(i), 'check if point.y is set correctly'
+        assert point[2] == pytest.approx(i), 'check if point.z is set correctly'
