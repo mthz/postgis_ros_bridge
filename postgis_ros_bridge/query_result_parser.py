@@ -348,7 +348,7 @@ class MarkerResultParser(SingleElementParser):
             if msg.type not in [Marker.LINE_STRIP, Marker.LINE_LIST, Marker.POINTS]:
                 msg.pose.position = self.utm_transformer.transform_point(msg.pose.position)
             
-        return (self.topic,                msg)
+        return (self.topic, msg)
 
     def __repr__(self) -> str:
         return super().__repr__() + f" (using frame_id: {self.frame_id} and topic: {self.topic})"

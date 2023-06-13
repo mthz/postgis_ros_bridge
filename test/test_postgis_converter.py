@@ -1,12 +1,16 @@
 
 from postgis_ros_bridge.postgis_converter import PostGisConverter
-from shapely import wkb, wkt
+from shapely import wkt
 from scipy.spatial.transform import Rotation
 from std_msgs.msg import Header
 
 
 import pytest
 
+
+# postgresql_my_proc = factories.postgresql_proc(
+#     port=None, unixsocketdir='/var/run')
+# postgresql_my = factories.postgresql('postgresql_my_proc')
 
 wkb_point_to_point = {
     "POINT (10 20 30)": (10, 20, 30),
@@ -23,6 +27,7 @@ wkb_point_to_point = {
 
 
 def test_to_point():
+    """Test conversion from WKB to ROS Point."""
     for wkb_point, point in wkb_point_to_point.items():
         ros_point = PostGisConverter.to_point(geometry=wkt.loads(wkb_point).wkb, hex=False)
         assert ros_point.x == pytest.approx(point[0]), f"check x for {wkb_point}"
@@ -31,6 +36,7 @@ def test_to_point():
 
 
 def test_to_point_hex():
+    """Test conversion from WKB to ROS Point."""
     for wkb_point, point in wkb_point_to_point.items():
         ros_point = PostGisConverter.to_point(geometry=wkt.loads(wkb_point).wkb_hex, hex=True)
         assert ros_point.x == pytest.approx(point[0]), f"check x for {wkb_point}"
@@ -45,6 +51,7 @@ def test_to_point_hex():
 
 
 def test_to_point_xyz():
+    """Test conversion from WKB to tuple of x, y, z."""
     for wkb_point, point in wkb_point_to_point.items():
         point_tuple = PostGisConverter.to_point_xyz(geometry=wkt.loads(wkb_point).wkb, hex=False)
         assert point_tuple[0] == pytest.approx(point[0]), f"check x for {wkb_point}"
@@ -54,6 +61,7 @@ def test_to_point_xyz():
 
 
 def test_to_point_xyz_hex():
+    """Test conversion from WKB to tuple of x, y, z."""
     for wkb_point, point in wkb_point_to_point.items():
         point_tuple = PostGisConverter.to_point_xyz(geometry=wkt.loads(wkb_point).wkb_hex, hex=True)
         assert point_tuple[0] == pytest.approx(point[0]), f"check x for {wkb_point}"
@@ -76,6 +84,7 @@ wkb_point_to_orientation = {
 }
 
 def test_to_orientation():
+    """Test conversion from WKB to ROS Orientation."""
     for wkb_point, orientation in wkb_point_to_orientation.items():
         ros_orientation = PostGisConverter.to_orientation(orientation=wkt.loads(wkb_point).wkb, hex=False)
         assert ros_orientation.x == pytest.approx(orientation[0]), f"check x for {wkb_point}"
@@ -84,6 +93,7 @@ def test_to_orientation():
         assert ros_orientation.w == pytest.approx(orientation[3]), f"check w for {wkb_point}"
 
 def test_to_orientation_hex():
+    """Test conversion from WKB to ROS Orientation."""
     for wkb_point, orientation in wkb_point_to_orientation.items():
         ros_orientation = PostGisConverter.to_orientation(orientation=wkt.loads(wkb_point).wkb_hex, hex=True)
         assert ros_orientation.x == pytest.approx(orientation[0]), f"check x for {wkb_point}"
@@ -108,6 +118,7 @@ wkb_pose_to_pose = {
 }
 
 def test_to_pose():
+    """Test conversion from WKB to ROS Pose."""
     for wkb_points, points in wkb_pose_to_pose.items():
         ros_pose = PostGisConverter.to_pose(geometry=wkt.loads(wkb_points[0]).wkb, orientation=wkt.loads(wkb_points[1]).wkb, hex=False)
         assert ros_pose.position.x == pytest.approx(points[0]), f"check x for {wkb_points}"
@@ -119,6 +130,7 @@ def test_to_pose():
         assert ros_pose.orientation.w == pytest.approx(points[6]), f"check w for {wkb_points}"
 
 def test_to_pose_hex():
+    """Test conversion from WKB to ROS Pose."""
     for wkb_points, points in wkb_pose_to_pose.items():
         ros_pose = PostGisConverter.to_pose(geometry=wkt.loads(wkb_points[0]).wkb_hex, orientation=wkt.loads(wkb_points[1]).wkb_hex, hex=True)
         assert ros_pose.position.x == pytest.approx(points[0]), f"check x for {wkb_points}"
@@ -141,6 +153,7 @@ def test_to_pose_hex():
 
 
 def test_to_pose_stamped():
+    """Test conversion from WKB to ROS PoseStamped."""
     for wkb_points, points in wkb_pose_to_pose.items():
         ros_pose = PostGisConverter.to_pose_stamped(header=Header(), geometry=wkt.loads(wkb_points[0]).wkb, orientation=wkt.loads(wkb_points[1]).wkb, hex=False)
         assert ros_pose.pose.position.x == pytest.approx(points[0]), f"check x for {wkb_points}"
@@ -152,6 +165,7 @@ def test_to_pose_stamped():
         assert ros_pose.pose.orientation.w == pytest.approx(points[6]), f"check w for {wkb_points}"
 
 def test_to_pose_stamped_hex():
+    """Test conversion from WKB to ROS PoseStamped."""
     for wkb_points, points in wkb_pose_to_pose.items():
         ros_pose = PostGisConverter.to_pose_stamped(header=Header(), geometry=wkt.loads(wkb_points[0]).wkb_hex, orientation=wkt.loads(wkb_points[1]).wkb_hex, hex=True)
         assert ros_pose.pose.position.x == pytest.approx(points[0]), f"check x for {wkb_points}"
