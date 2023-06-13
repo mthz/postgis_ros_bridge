@@ -1,5 +1,5 @@
 
-from postgis_ros_bridge.query_result_parser import QueryResultDefaultParameters, PointResultParser
+from postgis_ros_bridge.query_result_parser import QueryResultDefaultParameters, PointResultParser, PoseResultParser, PoseStampedResultParser
 from shapely import wkt
 from scipy.spatial.transform import Rotation
 from std_msgs.msg import Header
@@ -12,6 +12,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
+from scipy.spatial.transform import Rotation
 
 import pytest
 
@@ -63,6 +64,7 @@ def query_result_default_parameters():
     defaults.set_params(params)
     return defaults
 
+
 @pytest.fixture
 def point_result_parser(query_result_default_parameters):
     """Create a point result parser."""
@@ -72,9 +74,13 @@ def point_result_parser(query_result_default_parameters):
     prp.set_params(params=params)
     return prp
 
+
 def test_point_result_parser(db_session_test_db, point_result_parser):
+    '''Test if the point result parser works.'''
     prp = point_result_parser
     db = db_session_test_db
+
+    assert prp.TYPE == 'PointStamped', 'check if type is set correctly'
 
     for element in db.execute(text("SELECT ROW_NUMBER() OVER (ORDER BY point.id) AS id, point.geom AS geometry, 'test_frame_id' AS frame_id FROM point")).all():
         res = prp.parse_single_element(element=element, time=Time())
@@ -87,3 +93,75 @@ def test_point_result_parser(db_session_test_db, point_result_parser):
         assert point.y == pytest.approx(element.id-1), 'check if point.y is set correctly'
         assert point.z == pytest.approx(element.id-1), 'check if point.z is set correctly'    
     
+
+@pytest.fixture
+def pose_result_parser(query_result_default_parameters):
+    """Create a pose result parser."""
+    defaults = query_result_default_parameters
+    prp = PoseResultParser()
+    prp.declare_params(defaults=defaults)
+    prp.set_params(params=params)
+    return prp
+
+
+def test_pose_result_parser(db_session_test_db, pose_result_parser):
+    '''Test if the pose result parser works.'''
+    prp = pose_result_parser
+    db = db_session_test_db
+
+    assert prp.TYPE == 'Pose', 'check if type is set correctly'
+
+    for element in db.execute(text("SELECT ROW_NUMBER() OVER (ORDER BY point.id) AS id, point.geom AS geometry, point.geom AS rotation, 'test_frame_id' AS frame_id FROM point")).all():
+        res = prp.parse_single_element(element=element, time=Time())
+        assert res[0], 'check if topic is set'
+        topic = res[0]
+        assert params['topic'].value == topic, 'check if topic is set correctly'
+        assert res[1], 'check if point is set'
+        point = res[1].position
+        id = element.id-1
+        assert point.x == pytest.approx(id), 'check if point.x is set correctly'
+        assert point.y == pytest.approx(id), 'check if point.y is set correctly'
+        assert point.z == pytest.approx(id), 'check if point.z is set correctly'  
+        rot = res[1].orientation
+        gt_rot = Rotation.from_rotvec([id, id, id]).as_quat()
+        assert rot.x == pytest.approx(gt_rot[0]), 'check if rot.x is set correctly'
+        assert rot.y == pytest.approx(gt_rot[1]), 'check if rot.y is set correctly'
+        assert rot.z == pytest.approx(gt_rot[2]), 'check if rot.z is set correctly'
+        assert rot.w == pytest.approx(gt_rot[3]), 'check if rot.w is set correctly'
+
+
+
+@pytest.fixture
+def pose_stamped_result_parser(query_result_default_parameters):
+    """Create a pose result parser."""
+    defaults = query_result_default_parameters
+    prp = PoseStampedResultParser()
+    prp.declare_params(defaults=defaults)
+    prp.set_params(params=params)
+    return prp
+
+
+def test_pose_stamped_result_parser(db_session_test_db, pose_stamped_result_parser):
+    '''Test if the pose stamped result parser works.'''
+    prp = pose_stamped_result_parser
+    db = db_session_test_db
+
+    assert prp.TYPE == 'PoseStamped', 'check if type is set correctly'
+
+    for element in db.execute(text("SELECT ROW_NUMBER() OVER (ORDER BY point.id) AS id, point.geom AS geometry, point.geom AS rotation, 'test_frame_id' AS frame_id FROM point")).all():
+        res = prp.parse_single_element(element=element, time=Time())
+        assert res[0], 'check if topic is set'
+        topic = res[0]
+        assert params['topic'].value == topic, 'check if topic is set correctly'
+        assert res[1], 'check if point is set'
+        point = res[1].pose.position
+        id = element.id-1
+        assert point.x == pytest.approx(id), 'check if point.x is set correctly'
+        assert point.y == pytest.approx(id), 'check if point.y is set correctly'
+        assert point.z == pytest.approx(id), 'check if point.z is set correctly'  
+        rot = res[1].pose.orientation
+        gt_rot = Rotation.from_rotvec([id, id, id]).as_quat()
+        assert rot.x == pytest.approx(gt_rot[0]), 'check if rot.x is set correctly'
+        assert rot.y == pytest.approx(gt_rot[1]), 'check if rot.y is set correctly'
+        assert rot.z == pytest.approx(gt_rot[2]), 'check if rot.z is set correctly'
+        assert rot.w == pytest.approx(gt_rot[3]), 'check if rot.w is set correctly'
