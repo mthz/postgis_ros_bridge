@@ -1,4 +1,4 @@
-"""PostgreSQL Connection Abstraction class"""
+"""PostgreSQL Connection Abstraction class."""
 import os
 from contextlib import AbstractContextManager
 
@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 
 
 class PostgreSQLConnection(AbstractContextManager):
-    """PostgreSQL Connection Abstraction class"""
+    """PostgreSQL Connection Abstraction class."""
 
     def __init__(self, node: Node):
         namespace = "postgresql"

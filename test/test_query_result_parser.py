@@ -1,4 +1,4 @@
-'''Test the query result parser.'''
+"""Test the query result parser."""
 import pytest
 from builtin_interfaces.msg import Time
 from rclpy.parameter import Parameter
@@ -79,7 +79,7 @@ def setup_point_result_parser(query_result_default_parameters):
 
 
 def test_point_result_parser(db_session_test_db, point_result_parser):
-    '''Test if the point result parser works.'''
+    """Test if the point result parser works."""
     prp = point_result_parser
     db = db_session_test_db
 
@@ -113,7 +113,7 @@ def setup_pose_result_parser(query_result_default_parameters):
 
 
 def test_pose_result_parser(db_session_test_db, pose_result_parser):
-    '''Test if the pose result parser works.'''
+    """Test if the pose result parser works."""
     prp = pose_result_parser
     db = db_session_test_db
 
@@ -158,7 +158,7 @@ def setup_pose_stamped_result_parser(query_result_default_parameters):
 
 
 def test_pose_stamped_result_parser(db_session_test_db, pose_stamped_result_parser):
-    '''Test if the pose stamped result parser works.'''
+    """Test if the pose stamped result parser works."""
     prp = pose_stamped_result_parser
     db = db_session_test_db
 
@@ -203,7 +203,7 @@ def setup_pc2_result_parser(query_result_default_parameters):
 
 
 def test_pc2_result_parser(db_session_test_db, pc2_result_parser):
-    '''Test if the pc2 result parser works.'''
+    """Test if the pc2 result parser works."""
     prp = pc2_result_parser
     db = db_session_test_db
 
@@ -253,7 +253,7 @@ def setup_polygon_result_parser(query_result_default_parameters):
 
 
 def test_polygon_result_parser(db_session_test_db, polygon_result_parser):
-    '''Test if the polygon result parser works.'''
+    """Test if the polygon result parser works."""
     prp = polygon_result_parser
     db = db_session_test_db
 
@@ -292,7 +292,7 @@ def setup_polygon_stamped_result_parser(query_result_default_parameters):
 
 
 def test_polygon_stamped_result_parser(db_session_test_db, polygon_stamped_result_parser):
-    '''Test if the polygon stamped result parser works.'''
+    """Test if the polygon stamped result parser works."""
     prp = polygon_stamped_result_parser
     db = db_session_test_db
 

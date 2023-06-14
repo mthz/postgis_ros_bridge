@@ -118,7 +118,7 @@ class PostGisPublisher(Node):
 
 
 def main(args=None):
-    """Main function."""
+    """ROS main function."""
     rclpy.init(args=args)
     postgis_publisher = PostGisPublisher()
     rclpy.spin(postgis_publisher)

@@ -72,24 +72,25 @@ class QueryResultDefaultParameters:
 
 
 class QueryResultParser(ABC):
-    """Abstract Query Result Parser"""
+    """Abstract Query Result Parser."""
+
     TYPE = "AbstractParser"
 
     @abstractmethod
     def declare_params(self,
                        defaults: QueryResultDefaultParameters) -> Iterable[
                            Tuple[str, Any, ParameterDescriptor]]:
-        """API definition of declare_params"""
+        """Define API of declare_params."""
         return []
 
     @abstractmethod
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
-        """API definition of set_params"""
+        """Define API of set_params."""
         return []
 
     @abstractmethod
     def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
-        """API definition of parse_result"""
+        """Define API of parse_result."""
         return []
 
     def __repr__(self) -> str:
@@ -97,9 +98,7 @@ class QueryResultParser(ABC):
 
 
 class UTMTransformer:
-    """
-    transform from lat/lon to utm and optionally apply offset
-    """
+    """Transform from lat/lon to utm and optionally apply offset."""
 
     def __init__(self, offset_lat=None, offset_lon=None) -> None:
         self.utm_offset_lat = offset_lat
@@ -117,7 +116,7 @@ class UTMTransformer:
             self.utm_offset_lat, self.utm_offset_lon, radians=False)
 
     def transform_point(self, point: Point) -> Point:
-        """"Transform a point from lat/lon to utm and apply offset if set"""
+        """Transform a point from lat/lon to utm and apply offset if set."""
         # TODO: handle z # pylint: disable=fixme
 
         # pylint: disable=unpacking-non-sequence
@@ -135,7 +134,7 @@ class UTMTransformer:
                                SupportsFloat]) -> Tuple[SupportsFloat,
                                                         SupportsFloat,
                                                         SupportsFloat]:
-        """"Transform a point from lat/lon to utm and apply offset if set"""
+        """Transform a point from lat/lon to utm and apply offset if set."""
         # TODO: handle z # pylint: disable=fixme
 
         # pylint: disable=unpacking-non-sequence
@@ -149,7 +148,8 @@ class UTMTransformer:
 
 
 class StampedTopicParser(QueryResultParser):
-    """"Base class for parsers which produce a single stamped message topic"""
+    """Base class for parsers which produce a single stamped message topic."""
+
     TYPE = None
 
     def __init__(self) -> None:
@@ -166,7 +166,7 @@ class StampedTopicParser(QueryResultParser):
             defaults: QueryResultDefaultParameters) -> Iterable[Tuple[str,
                                                                       Any,
                                                                       ParameterDescriptor]]:
-        """API implementation of declare_params"""
+        """Implement API of declare_params."""
         return [
             ('frame_id', defaults.frame_id, ParameterDescriptor()),
             ('topic', Parameter.Type.STRING, ParameterDescriptor()),
@@ -176,7 +176,7 @@ class StampedTopicParser(QueryResultParser):
         ]
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
-        """API implementation of set_params"""
+        """Implement API of set_params."""
         self.frame_id = params['frame_id'].value
         self.topic = params['topic'].value
         self.utm_transform = params['utm_transform'].value
@@ -194,31 +194,31 @@ class StampedTopicParser(QueryResultParser):
 
 
 class SingleElementParser(StampedTopicParser):
-    """Base class for parsers which produce a single stamped message topic"""
+    """Base class for parsers which produce a single stamped message topic."""
 
     TYPE = None
 
     @abstractmethod
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
-        """API definition of parse_single_element"""
+        """Implement API of parse_single_element."""
         return None
 
     def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
-        """API implementation of parse_result for single element parsers"""
+        """Implement API of parse_result for single element parsers."""
         return (self.parse_single_element(element, time) for element in result)
 
 
 class PointResultParser(SingleElementParser):
-    """Parser for point results"""
+    """Parser for point results."""
 
     TYPE = "PointStamped"
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
-        """API implementation of set_params for point results"""
+        """Implement API of set_params for point results."""
         return super().set_params(params) + [(self.topic, PointStamped)]
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
-        """API implementation of parse_single_element for point results"""
+        """Implement API of parse_single_element for point results."""
         msg = PointStamped(header=Header(frame_id=self.get_frame_id(element), stamp=time),
                            point=PostGisConverter.to_point(element.geometry))
         if self.utm_transform:
@@ -231,16 +231,16 @@ class PointResultParser(SingleElementParser):
 
 
 class PoseResultParser(SingleElementParser):
-    """Parser for pose results"""
+    """Parser for pose results."""
 
     TYPE = "Pose"
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
-        """API implementation of set_params for pose results"""
+        """Implement API of set_params for pose results."""
         return super().set_params(params) + [(self.topic, Pose)]
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
-        """API implementation of parse_single_element for pose results"""
+        """Implement API of parse_single_element for pose results."""
         msg = PostGisConverter.to_pose(element.geometry, element.rotation)
         if self.utm_transform:
             msg.position = self.utm_transformer.transform_point(msg.position)
@@ -251,16 +251,16 @@ class PoseResultParser(SingleElementParser):
 
 
 class PoseStampedResultParser(SingleElementParser):
-    """Parser for pose stamped results"""
+    """Parser for pose stamped results."""
 
     TYPE = "PoseStamped"
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
-        """API implementation of set_params for pose stamped results"""
+        """Implement API of set_params for pose stamped results."""
         return super().set_params(params) + [(self.topic, PoseStamped)]
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
-        """API implementation of parse_single_element for pose stamped results"""
+        """Implement API of parse_single_element for pose stamped results."""
         msg = PostGisConverter.to_pose_stamped(geometry=element.geometry,
                                                orientation=element.rotation,
                                                header=Header(frame_id=self.get_frame_id(element),
@@ -276,16 +276,16 @@ class PoseStampedResultParser(SingleElementParser):
 
 
 class PC2ResultParser(StampedTopicParser):
-    """Parser for pointcloud2 results"""
+    """Parser for pointcloud2 results."""
 
     TYPE = "PointCloud2"
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
-        """API implementation of set_params for pointcloud2 results"""
+        """Implement API of set_params for pointcloud2 results."""
         return super().set_params(params) + [(self.topic,  PointCloud2)]
 
     def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
-        """API implementation of parse_result for pointcloud2 results"""
+        """Implement API of parse_result for pointcloud2 results."""
         pointcloud_msg = PointCloud2()
         header = Header(frame_id=self.frame_id, stamp=time)
         points = [
@@ -304,16 +304,16 @@ class PC2ResultParser(StampedTopicParser):
 
 
 class PolygonResultParser(SingleElementParser):
-    """Parser for polygon results"""
+    """Parser for polygon results."""
 
     TYPE = "Polygon"
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
-        """API implementation of set_params for polygon results"""
+        """Implement API of set_params for polygon results."""
         return super().set_params(params) + [(self.topic, Polygon)]
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
-        """API implementation of parse_single_element for polygon results"""
+        """Implement API of parse_single_element for polygon results."""
         msg = PostGisConverter.to_polygon(element.geometry)
 
         if self.utm_transform:
@@ -327,16 +327,16 @@ class PolygonResultParser(SingleElementParser):
 
 
 class PolygonStampedResultParser(SingleElementParser):
-    """Parser for polygon stamped results"""
+    """Parser for polygon stamped results."""
 
     TYPE = "PolygonStamped"
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
-        """API implementation of set_params for polygon stamped results"""
+        """Implement API of set_params for polygon stamped results."""
         return super().set_params(params) + [(self.topic, PolygonStamped)]
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
-        """API implementation of parse_single_element for polygon stamped results"""
+        """Implement API of parse_single_element for polygon stamped results."""
         msg = PostGisConverter.to_polygon_stamped(
             geometry=element.geometry,
             header=Header(frame_id=self.get_frame_id(element),
@@ -353,7 +353,7 @@ class PolygonStampedResultParser(SingleElementParser):
 
 
 class MarkerResultParser(SingleElementParser):
-    """Parser for marker results"""
+    """Parser for marker results."""
 
     TYPE = "Marker"
 
@@ -368,7 +368,7 @@ class MarkerResultParser(SingleElementParser):
             self,
             defaults: QueryResultDefaultParameters) -> Iterable[Tuple[str, Any,
                                                                       ParameterDescriptor]]:
-        """API implementation of declare_params for marker results"""
+        """Implement API of declare_params for marker results."""
         return super().declare_params(defaults) + [
             ('marker_type', Parameter.Type.STRING, ParameterDescriptor()),
             ('marker_ns', Parameter.Type.STRING, ParameterDescriptor()),
@@ -377,7 +377,7 @@ class MarkerResultParser(SingleElementParser):
         ]
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
-        """API implementation of set_params for marker results"""
+        """Implement API of set_params for marker results."""
         topics = super().set_params(params)
         self.marker_type = params['marker_type'].value
         self.marker_ns = params['marker_ns'].value if params['marker_ns'].value else ''
@@ -388,9 +388,9 @@ class MarkerResultParser(SingleElementParser):
         return topics + [(self.topic, Marker)]
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
-        """API implementation of parse_single_element for marker results"""
+        """Implement API of parse_single_element for marker results."""
         def get_id(elem):
-            """Get id of element if it has one, otherwise return 0"""
+            """Get id of element if it has one, otherwise return 0."""
             return elem.id if hasattr(elem, 'id') else 0
 
         marker_color = ColorRGBA(r=self.marker_color[0],
@@ -434,29 +434,28 @@ class MarkerResultParser(SingleElementParser):
 
 
 class BasicStampedArrayParserFactory:
-    """Factory for basic stamped array parsers"""
+    """Factory for basic stamped array parsers."""
 
     @staticmethod
     def create_array_parser(cls: SingleElementParser, msg: Any, field: str):
-        """Create array parser for given message and field"""
+        """Create array parser for given message and field."""
         class ArrayParserMessage(cls):
-            """Array parser for given message and field"""
+            """Array parser for given message and field."""
 
             def __init__(self) -> None:
                 super().__init__()
                 self._has_header = hasattr(msg, 'header')
 
             def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
-                """API implementation of set_params for array parser"""
+                """Implement API of set_params for array parser."""
                 super().set_params(params)
                 return [(self.topic, msg)]
 
             def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
-                """API implementation of parse_result for array parser"""
+                """Implement API of parse_result for array parser."""
                 # TODO: toplevel header (frame_id, timestamp can be different
                 #       from internal elements).
-                #       Add addition toplevel param and if not defined use header of first element
-
+                #       Add addition toplevel param and if not defined use header of first element.
                 args = {}
 
                 if self._has_header:

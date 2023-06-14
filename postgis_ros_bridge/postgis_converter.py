@@ -15,12 +15,12 @@ class PostGisConverter:
 
     @staticmethod
     def load(geometry: Union[bytes, str], as_hex=True):
-        """Loads a shapely point from well known binary form."""
+        """Load a shapely point from well known binary form."""
         return wkb.loads(geometry, hex=as_hex)
 
     @staticmethod
     def to_point(geometry: Union[bytes, str], as_hex=True) -> Point:
-        """Converts a shapely point to a ROS point."""
+        """Convert a shapely point to a ROS point."""
         if not geometry:
             return Point(x=0.0, y=0.0, z=0.0)
         point = wkb.loads(geometry, hex=as_hex)
@@ -28,18 +28,18 @@ class PostGisConverter:
 
     @staticmethod
     def to_point_(point: shapely.geometry.Point) -> Point:
-        """Converts a shapely point to a ROS point."""
+        """Convert a shapely point to a ROS point."""
         return Point(x=point.x, y=point.y, z=point.z if point.has_z else 0.0)
 
     @staticmethod
     def to_point_xyz(geometry: Union[bytes, str], as_hex=True):
-        """Converts a shapely point to a xyz tuple."""
+        """Convert a shapely point to a xyz tuple."""
         point = wkb.loads(geometry, hex=as_hex)
         return (point.x, point.y, point.z if point.has_z else 0.0)
 
     @staticmethod
     def to_orientation(orientation: Union[bytes, str], as_hex=True) -> Quaternion:
-        """Converts a orientation as well-known-binary to a ROS Quaternion."""
+        """Convert a orientation as well-known-binary to a ROS Quaternion."""
         # TODO: check quaternion order match with ROS
         if not orientation:
             return Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
@@ -48,7 +48,7 @@ class PostGisConverter:
 
     @staticmethod
     def to_orientation_(orientation: shapely.geometry.Point) -> Quaternion:
-        """Converts a orientation as shapeley point to a ROS Quaternion."""
+        """Convert a orientation as shapeley point to a ROS Quaternion."""
         if not orientation:
             return Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
         q = Rotation.from_rotvec(
@@ -57,20 +57,20 @@ class PostGisConverter:
 
     @staticmethod
     def to_points_from_line_sring(geometry: shapely.geometry.LineString) -> list[Point]:
-        """Converts a shapely LineString to a list of ROS points."""
+        """Convert a shapely LineString to a list of ROS points."""
         return [Point(x=point[0], y=point[1], z=point[2] if geometry.has_z else 0.0)
                 for point in geometry.coords]
 
     @staticmethod
     def to_points_from_polygon(geometry: shapely.geometry.LineString) -> list[Point]:
-        """Converts a shapely Polygon (as linestring) to a list of ROS points."""
+        """Convert a shapely Polygon (as linestring) to a list of ROS points."""
         return [Point(x=point[0], y=point[1], z=point[2] if geometry.has_z else 0.0)
                 for point in geometry.coords]
 
     @staticmethod
     def to_marker(header: Header, geometry: Union[bytes, str],
                   orientation: Union[bytes, str], as_hex, *args, **kwargs):
-        """Converts a shapely geometry to a ROS marker."""
+        """Convert a shapely geometry to a ROS marker."""
         geometry = PostGisConverter.load(geometry, as_hex=as_hex)
         geometry_orientation = PostGisConverter.load(
             orientation, as_hex=as_hex) if orientation else None
@@ -102,7 +102,7 @@ class PostGisConverter:
 
     @staticmethod
     def to_pose(geometry: Union[bytes, str], orientation: Union[bytes, str], as_hex=True) -> Pose:
-        """Converts a point as well-known-binary to a ROS Pose"""
+        """Convert a point as well-known-binary to a ROS Pose."""
         geometry_position = PostGisConverter.load(geometry, as_hex=as_hex)
         geometry_orientation = PostGisConverter.load(orientation, as_hex=as_hex)
         return PostGisConverter.to_pose_(point=geometry_position,
@@ -110,20 +110,20 @@ class PostGisConverter:
 
     @staticmethod
     def to_pose_(point: shapely.geometry.Point, orientation: shapely.geometry.Point) -> Pose:
-        """Converts a point as shapely point to a ROS Pose"""
+        """Convert a point as shapely point to a ROS Pose."""
         return Pose(position=PostGisConverter.to_point_(point),
                     orientation=PostGisConverter.to_orientation_(orientation))
 
     @staticmethod
     def to_pose_stamped(header: Header, geometry: Union[bytes, str],
                         orientation: Union[bytes, str], as_hex=True) -> PoseStamped:
-        """Converts a point as well-known-binary to a ROS PoseStamped"""
+        """Convert a point as well-known-binary to a ROS PoseStamped."""
         pose = PostGisConverter.to_pose(geometry, orientation, as_hex=as_hex)
         return PoseStamped(header=header, pose=pose)
 
     @staticmethod
     def to_polygon(geometry: Union[bytes, str], as_hex=True) -> Polygon:
-        """Converts a polygon as well-known-binary to a ROS Polygon"""
+        """Convert a polygon as well-known-binary to a ROS Polygon."""
         polygon = wkb.loads(geometry, hex=as_hex)
         return Polygon(
             points=[Point32(x=point[0], y=point[1], z=point[2] if polygon.has_z else 0.0)
@@ -132,6 +132,6 @@ class PostGisConverter:
     @staticmethod
     def to_polygon_stamped(header: Header, 
                            geometry: Union[bytes, str], as_hex=True) -> PolygonStamped:
-        """Converts a polygon as well-known-binary to a ROS PolygonStamped"""
+        """Convert a polygon as well-known-binary to a ROS PolygonStamped."""
         polygon = PostGisConverter.to_polygon(geometry, as_hex=as_hex)
         return PolygonStamped(header=header, polygon=polygon)
