@@ -1,5 +1,5 @@
 
-from postgis_ros_bridge.query_result_parser import QueryResultDefaultParameters, PointResultParser, PoseResultParser, PoseStampedResultParser, PC2ResultParser
+from postgis_ros_bridge.query_result_parser import QueryResultDefaultParameters, PointResultParser, PoseResultParser, PoseStampedResultParser, PC2ResultParser, PolygonResultParser, PolygonStampedResultParser
 from shapely import wkt
 from scipy.spatial.transform import Rotation
 from std_msgs.msg import Header
@@ -202,3 +202,76 @@ def test_pc2_result_parser(db_session_test_db, pc2_result_parser):
         assert point[0] == pytest.approx(i), 'check if point.x is set correctly'
         assert point[1] == pytest.approx(i), 'check if point.y is set correctly'
         assert point[2] == pytest.approx(i), 'check if point.z is set correctly'
+
+
+
+gt_polygons = [
+    [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0,0,0]],
+    [[2, 2, 0], [3, 2, 0], [3, 3, 0], [2, 3, 0], [2,2,0]],
+    [[4, 4, 0], [5, 4, 0], [5, 5, 0], [4, 5, 0], [4,4,0]],
+    [[6, 6, 0], [7, 6, 0], [7, 7, 0], [6, 7, 0], [6,6,0]],
+    [[8, 8, 0], [9, 8, 0], [9, 9, 0], [8, 9, 0], [8,8,0]],
+]
+
+@pytest.fixture
+def polygon_result_parser(query_result_default_parameters):
+    """Create a polygon result parser."""
+    defaults = query_result_default_parameters
+    prp = PolygonResultParser()
+    prp.declare_params(defaults=defaults)
+    prp.set_params(params=params)
+    return prp
+
+def test_polygon_result_parser(db_session_test_db, polygon_result_parser):
+    '''Test if the polygon result parser works.'''
+    prp = polygon_result_parser
+    db = db_session_test_db
+
+    assert prp.TYPE == 'Polygon', 'check if type is set correctly'
+    db_polygons = db.execute(text("SELECT ROW_NUMBER() OVER (ORDER BY polygon.id) AS id, polygon.geom AS geometry, 'test_frame_id' AS frame_id FROM polygon")).all()
+    assert len(db_polygons) == len(gt_polygons), 'check if all polygons are returned'
+
+    for gt_polys, elements in zip(gt_polygons, db_polygons):
+        res = prp.parse_single_element(element=elements, time=Time())
+        assert res[0], 'check if topic is set'
+        topic = res[0]
+        assert params['topic'].value == topic, 'check if topic is set correctly'
+        assert res[1], 'check if point is set'
+        points = res[1].points
+        assert len(points) == len(gt_polys), 'check if all points are returned'
+        for gt_poly, element in zip(gt_polys, points):
+            assert element.x == pytest.approx(gt_poly[0]), 'check if point.x is set correctly'
+            assert element.y == pytest.approx(gt_poly[1]), 'check if point.y is set correctly'
+            assert element.z == pytest.approx(gt_poly[2]), 'check if point.z is set correctly'
+        
+        
+@pytest.fixture
+def polygon_stamped_result_parser(query_result_default_parameters):
+    """Create a polygon stamped result parser."""
+    defaults = query_result_default_parameters
+    prp = PolygonStampedResultParser()
+    prp.declare_params(defaults=defaults)
+    prp.set_params(params=params)
+    return prp
+
+def test_polygon_stamped_result_parser(db_session_test_db, polygon_stamped_result_parser):
+    '''Test if the polygon stamped result parser works.'''
+    prp = polygon_stamped_result_parser
+    db = db_session_test_db
+
+    assert prp.TYPE == 'PolygonStamped', 'check if type is set correctly'
+    db_polygons = db.execute(text("SELECT ROW_NUMBER() OVER (ORDER BY polygon.id) AS id, polygon.geom AS geometry, 'test_frame_id' AS frame_id FROM polygon")).all()
+    assert len(db_polygons) == len(gt_polygons), 'check if all polygons are returned'
+
+    for gt_polys, elements in zip(gt_polygons, db_polygons):
+        res = prp.parse_single_element(element=elements, time=Time())
+        assert res[0], 'check if topic is set'
+        topic = res[0]
+        assert params['topic'].value == topic, 'check if topic is set correctly'
+        assert res[1], 'check if point is set'
+        points = res[1].polygon.points
+        assert len(points) == len(gt_polys), 'check if all points are returned'
+        for gt_poly, element in zip(gt_polys, points):
+            assert element.x == pytest.approx(gt_poly[0]), 'check if point.x is set correctly'
+            assert element.y == pytest.approx(gt_poly[1]), 'check if point.y is set correctly'
+            assert element.z == pytest.approx(gt_poly[2]), 'check if point.z is set correctly'
