@@ -1,16 +1,12 @@
-
+'''Test the query result parser.'''
 import pytest
-from builtin_interfaces.msg import Duration, Time
-from pytest_postgresql import factories
+from builtin_interfaces.msg import Time
 from rclpy.parameter import Parameter
 from scipy.spatial.transform import Rotation
-from sensor_msgs.msg import PointCloud2
 from sensor_msgs_py import point_cloud2
-from shapely import wkt
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
-from std_msgs.msg import Header
 
 from postgis_ros_bridge.query_result_parser import (
     PC2ResultParser, PointResultParser, PolygonResultParser,
@@ -18,27 +14,30 @@ from postgis_ros_bridge.query_result_parser import (
     QueryResultDefaultParameters)
 
 test_sql_files = {
-    "postgis_test":
-        "/workspaces/ws_openschema/src/postgis_ros_bridge/test/sql_data/postgis_test.sql",
+    'postgis_test':
+        '/workspaces/ws_openschema/src/postgis_ros_bridge/test/sql_data/postgis_test.sql',
 }
 
 
-@pytest.fixture
-def db_session(postgresql):
+@pytest.fixture(name='db_session')
+def setup_db_session(postgresql):
     """Create a database session for testing."""
-    connection_uri = f'postgresql+psycopg2://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}'
+    connection_uri = (f'postgresql+psycopg2://{postgresql.info.user}:'
+                      f'@{postgresql.info.host}:'
+                      f'{postgresql.info.port}/{postgresql.info.dbname}')
     engine = create_engine(connection_uri, poolclass=NullPool)
-    Session = sessionmaker(bind=engine)
-    session = Session()
+    session_ = sessionmaker(bind=engine)
+    session = session_()
     yield session
     session.close()
 
 
-@pytest.fixture
-def db_session_test_db(db_session):
+@pytest.fixture(name='db_session_test_db')
+def setup_db_session_test_db(db_session):
     """Fill the database with test data."""
     for sql_file in test_sql_files.values():
-        db_session.execute(text(open(sql_file).read()))
+        with open(file=sql_file, mode='r', encoding='latin-1') as file:
+            db_session.execute(text(file.read()))
     db_session.commit()
     return db_session
 
@@ -46,7 +45,7 @@ def db_session_test_db(db_session):
 def test_simple_dummy_db_connection(db_session_test_db):
     """Test if the dummy database connection works."""
     session = db_session_test_db
-    result = session.execute(text("SELECT * FROM point"))
+    result = session.execute(text('SELECT * FROM point'))
     assert result.rowcount == 5
 
 
@@ -60,8 +59,8 @@ params = {
 }
 
 
-@pytest.fixture
-def query_result_default_parameters():
+@pytest.fixture(name='query_result_default_parameters')
+def setup_query_result_default_parameters():
     """Create a default parameter object."""
     defaults = QueryResultDefaultParameters()
     defaults.declare_params()
@@ -69,8 +68,8 @@ def query_result_default_parameters():
     return defaults
 
 
-@pytest.fixture
-def point_result_parser(query_result_default_parameters):
+@pytest.fixture(name='point_result_parser')
+def setup_point_result_parser(query_result_default_parameters):
     """Create a point result parser."""
     defaults = query_result_default_parameters
     prp = PointResultParser()
@@ -86,7 +85,9 @@ def test_point_result_parser(db_session_test_db, point_result_parser):
 
     assert prp.TYPE == 'PointStamped', 'check if type is set correctly'
 
-    for element in db.execute(text("SELECT ROW_NUMBER() OVER (ORDER BY point.id) AS id, point.geom AS geometry, 'test_frame_id' AS frame_id FROM point")).all():
+    for element in db.execute(text("SELECT ROW_NUMBER() OVER (ORDER BY point.id) AS id, "
+                                   "point.geom AS geometry, 'test_frame_id' AS frame_id "
+                                   "FROM point")).all():
         res = prp.parse_single_element(element=element, time=Time())
         assert res[0], 'check if topic is set'
         topic = res[0]
@@ -101,8 +102,8 @@ def test_point_result_parser(db_session_test_db, point_result_parser):
             element.id-1), 'check if point.z is set correctly'
 
 
-@pytest.fixture
-def pose_result_parser(query_result_default_parameters):
+@pytest.fixture(name='pose_result_parser')
+def setup_pose_result_parser(query_result_default_parameters):
     """Create a pose result parser."""
     defaults = query_result_default_parameters
     prp = PoseResultParser()
@@ -118,7 +119,9 @@ def test_pose_result_parser(db_session_test_db, pose_result_parser):
 
     assert prp.TYPE == 'Pose', 'check if type is set correctly'
 
-    for element in db.execute(text("SELECT ROW_NUMBER() OVER (ORDER BY point.id) AS id, point.geom AS geometry, point.geom AS rotation, 'test_frame_id' AS frame_id FROM point")).all():
+    for element in db.execute(text("SELECT ROW_NUMBER() OVER (ORDER BY point.id) AS id, "
+                                   "point.geom AS geometry, point.geom AS rotation, "
+                                   "'test_frame_id' AS frame_id FROM point")).all():
         res = prp.parse_single_element(element=element, time=Time())
         assert res[0], 'check if topic is set'
         topic = res[0]
@@ -144,8 +147,8 @@ def test_pose_result_parser(db_session_test_db, pose_result_parser):
             gt_rot[3]), 'check if rot.w is set correctly'
 
 
-@pytest.fixture
-def pose_stamped_result_parser(query_result_default_parameters):
+@pytest.fixture(name='pose_stamped_result_parser')
+def setup_pose_stamped_result_parser(query_result_default_parameters):
     """Create a pose result parser."""
     defaults = query_result_default_parameters
     prp = PoseStampedResultParser()
@@ -161,7 +164,9 @@ def test_pose_stamped_result_parser(db_session_test_db, pose_stamped_result_pars
 
     assert prp.TYPE == 'PoseStamped', 'check if type is set correctly'
 
-    for element in db.execute(text("SELECT ROW_NUMBER() OVER (ORDER BY point.id) AS id, point.geom AS geometry, point.geom AS rotation, 'test_frame_id' AS frame_id FROM point")).all():
+    for element in db.execute(text("SELECT ROW_NUMBER() OVER (ORDER BY point.id) AS id, "
+                                   "point.geom AS geometry, point.geom AS rotation, "
+                                   "'test_frame_id' AS frame_id FROM point")).all():
         res = prp.parse_single_element(element=element, time=Time())
         assert res[0], 'check if topic is set'
         topic = res[0]
@@ -187,8 +192,8 @@ def test_pose_stamped_result_parser(db_session_test_db, pose_stamped_result_pars
             gt_rot[3]), 'check if rot.w is set correctly'
 
 
-@pytest.fixture
-def pc2_result_parser(query_result_default_parameters):
+@pytest.fixture(name='pc2_result_parser')
+def setup_pc2_result_parser(query_result_default_parameters):
     """Create a pc2 result parser."""
     defaults = query_result_default_parameters
     prp = PC2ResultParser()
@@ -205,7 +210,8 @@ def test_pc2_result_parser(db_session_test_db, pc2_result_parser):
     assert prp.TYPE == 'PointCloud2', 'check if type is set correctly'
 
     db_res = db.execute(text(
-        "SELECT ROW_NUMBER() OVER (ORDER BY point.id) AS id, point.geom AS geometry, 'test_frame_id' AS frame_id FROM point"))
+        "SELECT ROW_NUMBER() OVER (ORDER BY point.id) AS id, point.geom AS geometry, "
+        "'test_frame_id' AS frame_id FROM point"))
     res = prp.parse_result(result=db_res, time=Time())
     assert len(res) == 1, 'check if one result is returned'
     res = res[0]
@@ -236,8 +242,8 @@ gt_polygons = [
 ]
 
 
-@pytest.fixture
-def polygon_result_parser(query_result_default_parameters):
+@pytest.fixture(name='polygon_result_parser')
+def setup_polygon_result_parser(query_result_default_parameters):
     """Create a polygon result parser."""
     defaults = query_result_default_parameters
     prp = PolygonResultParser()
@@ -253,7 +259,8 @@ def test_polygon_result_parser(db_session_test_db, polygon_result_parser):
 
     assert prp.TYPE == 'Polygon', 'check if type is set correctly'
     db_polygons = db.execute(text(
-        "SELECT ROW_NUMBER() OVER (ORDER BY polygon.id) AS id, polygon.geom AS geometry, 'test_frame_id' AS frame_id FROM polygon")).all()
+        "SELECT ROW_NUMBER() OVER (ORDER BY polygon.id) AS id, polygon.geom AS geometry, "
+        "'test_frame_id' AS frame_id FROM polygon")).all()
     assert len(db_polygons) == len(
         gt_polygons), 'check if all polygons are returned'
 
@@ -274,8 +281,8 @@ def test_polygon_result_parser(db_session_test_db, polygon_result_parser):
                 gt_poly[2]), 'check if point.z is set correctly'
 
 
-@pytest.fixture
-def polygon_stamped_result_parser(query_result_default_parameters):
+@pytest.fixture(name='polygon_stamped_result_parser')
+def setup_polygon_stamped_result_parser(query_result_default_parameters):
     """Create a polygon stamped result parser."""
     defaults = query_result_default_parameters
     prp = PolygonStampedResultParser()
@@ -291,7 +298,8 @@ def test_polygon_stamped_result_parser(db_session_test_db, polygon_stamped_resul
 
     assert prp.TYPE == 'PolygonStamped', 'check if type is set correctly'
     db_polygons = db.execute(text(
-        "SELECT ROW_NUMBER() OVER (ORDER BY polygon.id) AS id, polygon.geom AS geometry, 'test_frame_id' AS frame_id FROM polygon")).all()
+        "SELECT ROW_NUMBER() OVER (ORDER BY polygon.id) AS id, "
+        "polygon.geom AS geometry, 'test_frame_id' AS frame_id FROM polygon")).all()
     assert len(db_polygons) == len(
         gt_polygons), 'check if all polygons are returned'
 
