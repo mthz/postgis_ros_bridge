@@ -44,10 +44,10 @@ class PostGisConverter:
         if not orientation:
             return Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
         orientation = wkb.loads(orientation, hex=as_hex)
-        return PostGisConverter.to_orientation_(orientation, as_hex=as_hex)
+        return PostGisConverter.to_orientation_(orientation)
 
     @staticmethod
-    def to_orientation_(orientation: shapely.geometry.Point, as_hex=True) -> Quaternion:
+    def to_orientation_(orientation: shapely.geometry.Point) -> Quaternion:
         """Converts a orientation as shapeley point to a ROS Quaternion."""
         if not orientation:
             return Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
@@ -130,7 +130,8 @@ class PostGisConverter:
                     for point in polygon.boundary.coords])
 
     @staticmethod
-    def to_polygon_stamped(header: Header, geometry: Union[bytes, str], as_hex=True) -> PolygonStamped:
+    def to_polygon_stamped(header: Header, 
+                           geometry: Union[bytes, str], as_hex=True) -> PolygonStamped:
         """Converts a polygon as well-known-binary to a ROS PolygonStamped"""
         polygon = PostGisConverter.to_polygon(geometry, as_hex=as_hex)
         return PolygonStamped(header=header, polygon=polygon)
