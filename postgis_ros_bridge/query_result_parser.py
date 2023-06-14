@@ -111,24 +111,32 @@ class UTMTransformer:
             # {"proj":'geocent', "ellps":'WGS84', "datum":'WGS84'},
             {"proj": 'utm', "ellps": 'WGS84', "datum": 'WGS84', "zone": 33},
         )
-        
+
         # pylint: disable=unpacking-non-sequence
         self.utm_offset_x, self.utm_offset_y = self.transformer.transform(
             self.utm_offset_lat, self.utm_offset_lon, radians=False)
 
     def transform_point(self, point: Point) -> Point:
-        # TODO handle z
+        """"Transform a point from lat/lon to utm and apply offset if set"""
+        # TODO: handle z # pylint: disable=fixme
 
         # pylint: disable=unpacking-non-sequence
-        point.x, point.y = self.transformer.transform(point.x, point.y, radians=False)
+        point.x, point.y = self.transformer.transform(
+            point.x, point.y, radians=False)
         if self.utm_offset:
             point.x -= self.utm_offset_x
             point.y -= self.utm_offset_y
 
         return point
 
-    def transform(self, point: Tuple[SupportsFloat, SupportsFloat, SupportsFloat]) -> Tuple[SupportsFloat, SupportsFloat, SupportsFloat]:
-        # TODO handle z
+    def transform(
+            self, point: Tuple[SupportsFloat,
+                               SupportsFloat,
+                               SupportsFloat]) -> Tuple[SupportsFloat,
+                                                        SupportsFloat,
+                                                        SupportsFloat]:
+        """"Transform a point from lat/lon to utm and apply offset if set"""
+        # TODO: handle z # pylint: disable=fixme
 
         # pylint: disable=unpacking-non-sequence
         point_utm = self.transformer.transform(
@@ -138,7 +146,6 @@ class UTMTransformer:
             point_utm = (point_utm[0] - self.utm_offset_x,
                          point_utm[1] - self.utm_offset_y, point_utm[2])
         return point_utm
-
 
 
 class StampedTopicParser(QueryResultParser):
@@ -259,7 +266,7 @@ class PoseStampedResultParser(SingleElementParser):
                                                header=Header(frame_id=self.get_frame_id(element),
                                                              stamp=time))
         if self.utm_transform:
-            # todo handle orientation
+            # TODO: handle orientation # pylint: disable=fixme
             msg.pose.position = self.utm_transformer.transform_point(
                 msg.pose.position)
         return (self.topic, msg)
