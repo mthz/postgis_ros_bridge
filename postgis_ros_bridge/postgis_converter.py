@@ -130,7 +130,7 @@ class PostGisConverter:
                     for point in polygon.boundary.coords])
 
     @staticmethod
-    def to_polygon_stamped(header: Header, 
+    def to_polygon_stamped(header: Header,
                            geometry: Union[bytes, str], as_hex=True) -> PolygonStamped:
         """Convert a polygon as well-known-binary to a ROS PolygonStamped."""
         polygon = PostGisConverter.to_polygon(geometry, as_hex=as_hex)

@@ -83,13 +83,13 @@ class PostGisPublisher(Node):
             sql_query = self.get_parameter(f"{config}.query").value
             rate = self.get_parameter(f"{config}.rate").value
 
-            if not query_type in query_parser.keys():
+            if query_type not in query_parser.keys():
                 raise ValueError(
                     f"Type: '{query_type}' is not supported. Supported: {query_parser.keys()}"
                 )
 
             parser = query_parser[query_type]()
-            # TODO: namespace bug in rclpy Node declare 
+            # TODO: namespace bug in rclpy Node declare
             # params name initialized after value query [fixme]
             self.declare_parameters(
                 namespace="", parameters=list(
@@ -108,7 +108,6 @@ class PostGisPublisher(Node):
                 1.0/rate, partial(self.timer_callback, query, parser))
 
             self.get_logger().info(f"Register parser: {str(parser)}")
-
 
     def timer_callback(self, query: Query, converter: QueryResultParser):
         """Timer callback for all queries."""

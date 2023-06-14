@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'postgis_ros_bridge_publisher_node = postgis_ros_bridge.postgis_ros_bridge_publisher_node:main'
+            'postgis_ros_bridge_publisher_node = '
+                'postgis_ros_bridge.postgis_ros_bridge_publisher_node:main'
         ],
     },
 )
