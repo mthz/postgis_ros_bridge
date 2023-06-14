@@ -1,9 +1,11 @@
+"""Parser classes for converting query results to ROS messages."""
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterable, Tuple, SupportsFloat, Union
+from typing import Any, Dict, Iterable, SupportsFloat, Tuple
 
 from builtin_interfaces.msg import Duration, Time
-from geometry_msgs.msg import PointStamped, Vector3, Pose, PoseStamped, Polygon, PolygonStamped, Point
-from postgis_ros_bridge.postgis_converter import PostGisConverter
+from geometry_msgs.msg import (Point, PointStamped, Polygon, PolygonStamped,
+                               Pose, PoseStamped, Vector3)
+from pyproj import Transformer
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.parameter import Parameter
 from sensor_msgs.msg import PointCloud2
@@ -12,23 +14,31 @@ from sqlalchemy import Result, Row
 from std_msgs.msg import ColorRGBA, Header
 from visualization_msgs.msg import Marker
 
-
+from postgis_ros_bridge.postgis_converter import PostGisConverter
 
 
 class QueryResultDefaultParameters:
+    """Default parameters for query result parsers."""
+
     def __init__(self):
-        pass
+        self._rate = None
+        self._frame_id = None
+        self._utm_transform = None
+        self._utm_offset_lat = None
+        self._utm_offset_lon = None
 
     def declare_params(self) -> Iterable[Tuple[str, Any]]:
+        """Declare default parameters for query result parsers."""
         return [
-                    (f"rate", 1.0, ParameterDescriptor()),
-                    (f"frame_id", "map", ParameterDescriptor()),
-                    (f"utm_transform", False, ParameterDescriptor()),
-                    (f"utm_offset.lat", Parameter.Type.DOUBLE, ParameterDescriptor()),
-                    (f"utm_offset.lon", Parameter.Type.DOUBLE, ParameterDescriptor())
-                ]
+            ('rate', 1.0, ParameterDescriptor()),
+            ('frame_id', 'map', ParameterDescriptor()),
+            ('utm_transform', False, ParameterDescriptor()),
+            ('utm_offset.lat', Parameter.Type.DOUBLE, ParameterDescriptor()),
+            ('utm_offset.lon', Parameter.Type.DOUBLE, ParameterDescriptor())
+        ]
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
+        """Set default parameters for query result parsers."""
         self._rate = params['rate'].value
         self._frame_id = params['frame_id'].value
         self._utm_transform = params['utm_transform'].value
@@ -37,38 +47,49 @@ class QueryResultDefaultParameters:
 
     @property
     def rate(self):
+        """Get rate of query result parser."""
         return self._rate
 
     @property
     def frame_id(self):
+        """Get frame id of query result parser."""
         return self._frame_id
 
-    @property 
+    @property
     def utm_transform(self):
+        """Get utm transform enabled / disabled of query result parser."""
         return self._utm_transform
-    
-    @property 
+
+    @property
     def utm_offset_lat(self):
+        """Get utm offset latitude of query result parser."""
         return self._utm_offset_lat
-    
-    @property 
+
+    @property
     def utm_offset_lon(self):
+        """Get utm offset longitude of query result parser."""
         return self._utm_offset_lon
 
 
 class QueryResultParser(ABC):
+    """Abstract Query Result Parser"""
     TYPE = "AbstractParser"
 
     @abstractmethod
-    def declare_params(self, defaults: QueryResultDefaultParameters) -> Iterable[Tuple[str, Any, ParameterDescriptor]]:
+    def declare_params(self,
+                       defaults: QueryResultDefaultParameters) -> Iterable[
+                           Tuple[str, Any, ParameterDescriptor]]:
+        """API definition of declare_params"""
         return []
 
     @abstractmethod
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
+        """API definition of set_params"""
         return []
 
     @abstractmethod
     def parse_result(self, result: Result, time: Time) -> Iterable[Tuple[str, Any]]:
+        """API definition of parse_result"""
         return []
 
     def __repr__(self) -> str:
@@ -85,7 +106,6 @@ class UTMTransformer:
         self.utm_offset_lon = offset_lon
         self.utm_offset = True if offset_lat and offset_lon else False
 
-        from pyproj import Transformer
         self.transformer = Transformer.from_crs(
             {"proj": 'latlong', "ellps": 'WGS84', "datum": 'WGS84'},
             # {"proj":'geocent', "ellps":'WGS84', "datum":'WGS84'},
@@ -105,12 +125,14 @@ class UTMTransformer:
             point.y -= self.utm_offset_y
 
         return point
-   
-    def transform(self, point: Tuple[SupportsFloat,SupportsFloat,SupportsFloat]) ->  Tuple[SupportsFloat,SupportsFloat,SupportsFloat]:
+
+    def transform(self, point: Tuple[SupportsFloat, SupportsFloat, SupportsFloat]) -> Tuple[SupportsFloat, SupportsFloat, SupportsFloat]:
         # TODO handle z
-        point_utm = self.transformer.transform(point[0], point[1], 0, radians=False)
+        point_utm = self.transformer.transform(
+            point[0], point[1], 0, radians=False)
         if self.utm_offset:
-            point_utm = (point_utm[0] - self.utm_offset_x, point_utm[1] - self.utm_offset_y, point_utm[2])
+            point_utm = (point_utm[0] - self.utm_offset_x,
+                         point_utm[1] - self.utm_offset_y, point_utm[2])
         return point_utm
 
 
@@ -129,12 +151,12 @@ class StampedTopicParser(QueryResultParser):
             ('utm_offset.lat', defaults.utm_offset_lat, ParameterDescriptor()),
             ('utm_offset.lon',  defaults.utm_offset_lon, ParameterDescriptor()),
         ]
-    
+
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
 
         self.frame_id = params['frame_id'].value
         self.topic = params['topic'].value
-        self.utm_transform = params['utm_transform'].value 
+        self.utm_transform = params['utm_transform'].value
         self.utm_offset_lat = params['utm_offset.lat'].value
         self.utm_offset_lon = params['utm_offset.lon'].value
         if self.utm_transform:
@@ -212,11 +234,12 @@ class PoseStampedResultParser(SingleElementParser):
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
         msg = PostGisConverter.to_pose_stamped(geometry=element.geometry,
-                                                             orientation=element.rotation,
-                                                             header=Header(frame_id=self.get_frame_id(element), stamp=time))
+                                               orientation=element.rotation,
+                                               header=Header(frame_id=self.get_frame_id(element), stamp=time))
         if self.utm_transform:
             # todo handle orientation
-            msg.pose.position = self.utm_transformer.transform_point(msg.pose.position)
+            msg.pose.position = self.utm_transformer.transform_point(
+                msg.pose.position)
         return (self.topic, msg)
 
     def __repr__(self) -> str:
@@ -240,7 +263,8 @@ class PC2ResultParser(StampedTopicParser):
         ]
 
         if self.utm_transform:
-            points = [self.utm_transformer.transform(point) for point in points]
+            points = [self.utm_transformer.transform(
+                point) for point in points]
 
         pointcloud_msg = point_cloud2.create_cloud_xyz32(header, points)
         return [(self.topic, pointcloud_msg)]
@@ -259,11 +283,12 @@ class PolygonResultParser(SingleElementParser):
         return super().set_params(params) + [(self.topic, Polygon)]
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
-        msg =  PostGisConverter.to_polygon(element.geometry)
+        msg = PostGisConverter.to_polygon(element.geometry)
 
         if self.utm_transform:
-            msg.points =[self.utm_transformer.transform_point(point) for point in msg.points]
-        
+            msg.points = [self.utm_transformer.transform_point(
+                point) for point in msg.points]
+
         return (self.topic, msg)
 
     def __repr__(self) -> str:
@@ -281,11 +306,12 @@ class PolygonStampedResultParser(SingleElementParser):
 
     def parse_single_element(self, element: Row, time: Time) -> Tuple[str, Any]:
         msg = PostGisConverter.to_polygon_stamped(geometry=element.geometry,
-                                                                header=Header(frame_id=self.get_frame_id(element), stamp=time))
-        
+                                                  header=Header(frame_id=self.get_frame_id(element), stamp=time))
+
         if self.utm_transform:
-            msg.polygon.points =[self.utm_transformer.transform_point(point) for point in msg.polygon.points]
-        
+            msg.polygon.points = [self.utm_transformer.transform_point(
+                point) for point in msg.polygon.points]
+
         return (self.topic, msg)
 
     def __repr__(self) -> str:
@@ -321,7 +347,8 @@ class MarkerResultParser(SingleElementParser):
         def get_id(elem):
             return elem.id if hasattr(elem, 'id') else 0
 
-        marker_color = ColorRGBA(r=self.marker_color[0], g=self.marker_color[1], b=self.marker_color[2], a=self.marker_color[3])
+        marker_color = ColorRGBA(
+            r=self.marker_color[0], g=self.marker_color[1], b=self.marker_color[2], a=self.marker_color[3])
         marker_types = {
             "visualization_msgs::Marker::ARROW": Marker.ARROW,
             "visualization_msgs::Marker::CUBE": Marker.CUBE,
@@ -329,26 +356,28 @@ class MarkerResultParser(SingleElementParser):
             "visualization_msgs::Marker::CYLINDER": Marker.CYLINDER,
         }
         marker_type = marker_types.get(self.marker_type, Marker.ARROW)
-        marker_scale = Vector3(x=self.marker_scale[0], y=self.marker_scale[1], z=self.marker_scale[2])
+        marker_scale = Vector3(
+            x=self.marker_scale[0], y=self.marker_scale[1], z=self.marker_scale[2])
 
-        msg = PostGisConverter.to_marker(header=Header(frame_id=self.get_frame_id(element), stamp=time), 
-                                           as_hex=True,
-                                           geometry=element.geometry,
-                                           orientation=None,
-                                           action=Marker.MODIFY,
-                                           id=get_id(element),
-                                           ns=self.marker_ns,
-                                           type=marker_type,
-                                           scale=marker_scale,
-                                           color=marker_color,
-                                           lifetime=Duration(sec=3))
+        msg = PostGisConverter.to_marker(header=Header(frame_id=self.get_frame_id(element), stamp=time),
+                                         as_hex=True,
+                                         geometry=element.geometry,
+                                         orientation=None,
+                                         action=Marker.MODIFY,
+                                         id=get_id(element),
+                                         ns=self.marker_ns,
+                                         type=marker_type,
+                                         scale=marker_scale,
+                                         color=marker_color,
+                                         lifetime=Duration(sec=3))
         if self.utm_transform:
             msg.points = [self.utm_transformer.transform_point(
                 point) for point in msg.points]
             # todo handle orientation
             if msg.type not in [Marker.LINE_STRIP, Marker.LINE_LIST, Marker.POINTS]:
-                msg.pose.position = self.utm_transformer.transform_point(msg.pose.position)
-            
+                msg.pose.position = self.utm_transformer.transform_point(
+                    msg.pose.position)
+
         return (self.topic, msg)
 
     def __repr__(self) -> str:
