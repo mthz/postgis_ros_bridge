@@ -331,7 +331,8 @@ class MarkerResultParser(SingleElementParser):
         marker_type = marker_types.get(self.marker_type, Marker.ARROW)
         marker_scale = Vector3(x=self.marker_scale[0], y=self.marker_scale[1], z=self.marker_scale[2])
 
-        msg = PostGisConverter.to_marker(header=Header(frame_id=self.get_frame_id(element), stamp=time),
+        msg = PostGisConverter.to_marker(header=Header(frame_id=self.get_frame_id(element), stamp=time), 
+                                           as_hex=True,
                                            geometry=element.geometry,
                                            orientation=None,
                                            action=Marker.MODIFY,
