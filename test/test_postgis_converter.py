@@ -1,3 +1,4 @@
+"""Tests for PostGisConverter class."""
 import pytest
 from scipy.spatial.transform import Rotation
 from shapely import wkt
@@ -144,11 +145,16 @@ def test_to_orientation_hex():
 
 
 wkb_pose_to_pose = {
-    ("POINT (10 20 30)", "POINT (0 0 0)"): (10, 20, 30, *Rotation.from_rotvec([0, 0, 0]).as_quat()),
-    ("POINT (10 20 30)", "POINT (0 0 0.1)"): (10, 20, 30, *Rotation.from_rotvec([0, 0, 0.1]).as_quat()),
-    ("POINT (10 20 30)", "POINT (0 0 0.1 0.1)"): (10, 20, 30, *Rotation.from_rotvec([0, 0, 0.1]).as_quat()),
-    ("POINT (0 0 0)", "POINT (0 0.3 0.1)"): (0, 0, 0, *Rotation.from_rotvec([0, 0.3, 0.1]).as_quat()),
-    ("POINT (-10 0 0)", "POINT (0 0.3 0.1)"): (-10, 0, 0, *Rotation.from_rotvec([0, 0.3, 0.1]).as_quat()),
+    ("POINT (10 20 30)", "POINT (0 0 0)"):
+        (10, 20, 30, *Rotation.from_rotvec([0, 0, 0]).as_quat()),
+    ("POINT (10 20 30)", "POINT (0 0 0.1)"):
+        (10, 20, 30, *Rotation.from_rotvec([0, 0, 0.1]).as_quat()),
+    ("POINT (10 20 30)", "POINT (0 0 0.1 0.1)"):
+        (10, 20, 30, *Rotation.from_rotvec([0, 0, 0.1]).as_quat()),
+    ("POINT (0 0 0)", "POINT (0 0.3 0.1)"):
+        (0, 0, 0, *Rotation.from_rotvec([0, 0.3, 0.1]).as_quat()),
+    ("POINT (-10 0 0)", "POINT (0 0.3 0.1)"):
+        (-10, 0, 0, *Rotation.from_rotvec([0, 0.3, 0.1]).as_quat()),
 }
 
 
