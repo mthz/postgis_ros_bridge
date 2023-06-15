@@ -95,6 +95,10 @@ class PostGisConverter:
             marker.points = [Point(x=point[0], y=point[1], z=point[2]
                                    if geometry.has_z else 0.0) for point in geom.exterior.coords]
             marker.type = Marker.LINE_STRIP
+        elif geometry.geom_type == "MultiLineString":
+            geom = geometry.geoms[0]
+            marker.points = PostGisConverter.to_points_from_line_sring(geom)
+            marker.type = Marker.LINE_STRIP
         else:
             raise ValueError(
                 f"Unsupported geometry type: {geometry.geom_type}")

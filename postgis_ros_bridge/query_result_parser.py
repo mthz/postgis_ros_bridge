@@ -470,6 +470,6 @@ class BasicStampedArrayParserFactory:
 
             def __repr__(self) -> str:
                 return f"{super().TYPE}Array "\
-                    "(using frame_id: {self.frame_id} and topic: {self.topic})"
+                    f"(using frame_id: {self.frame_id} and topic: {self.topic})"
 
         return ArrayParserMessage
