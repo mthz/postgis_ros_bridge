@@ -13,11 +13,9 @@ from postgis_ros_bridge.query_result_parser import (
     PolygonStampedResultParser, PoseResultParser, PoseStampedResultParser,
     QueryResultDefaultParameters)
 
-from pytest_postgresql import factories
-
 test_sql_files = {
     'postgis_test':
-        '/workspaces/postgis_rosbridge_demo_workspace/src/postgis_ros_bridge/test/sql_data/postgis_test.sql',
+        'test/sql_data/postgis_test.sql',
 }
 
 
