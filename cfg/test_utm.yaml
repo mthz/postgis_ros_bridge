@@ -22,10 +22,15 @@ postgis_ros_publisher:
     query_defaults:
       frame_id: "map"
       rate: 1.0
+
       utm_transform: false
-      utm_offset:
-          lat: 16.511422682732736
-          lon: 47.977274686327114
+      utm: 
+        # zone: 33
+        # band: "N"
+        lon: 16.511422682732736
+        lat: 47.977274686327114
+        lonlat_origin: true # directly apply utm to map
+
 
     query_road: 
       query: "SELECT id, geom AS geometry FROM road;"

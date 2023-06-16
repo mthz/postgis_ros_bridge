@@ -4,8 +4,7 @@ from typing import Any, Dict, Iterable, SupportsFloat, Tuple
 
 from builtin_interfaces.msg import Duration, Time
 from geometry_msgs.msg import (Point, PointStamped, Polygon, PolygonStamped,
-                               Pose, PoseStamped, Vector3)
-from pyproj import Transformer
+                               Pose, PoseStamped, Vector3, Point32)
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.parameter import Parameter
 from sensor_msgs.msg import PointCloud2
@@ -13,8 +12,12 @@ from sensor_msgs_py import point_cloud2
 from sqlalchemy import Result, Row
 from std_msgs.msg import ColorRGBA, Header
 from visualization_msgs.msg import Marker
-
 from postgis_ros_bridge.postgis_converter import PostGisConverter
+
+from pyproj import Transformer
+from pyproj.aoi import AreaOfInterest
+from pyproj.crs import CRS
+from pyproj.database import query_utm_crs_info
 
 
 class QueryResultDefaultParameters:
@@ -24,8 +27,11 @@ class QueryResultDefaultParameters:
         self._rate = None
         self._frame_id = None
         self._utm_transform = None
-        self._utm_offset_lat = None
-        self._utm_offset_lon = None
+        self._utm_zone = None
+        self._utm_band = None
+        self._utm_lat = None
+        self._utm_lon = None
+        self._utm_lonlat_origin = None
 
     def declare_params(self) -> Iterable[Tuple[str, Any]]:
         """Declare default parameters for query result parsers."""
@@ -33,8 +39,11 @@ class QueryResultDefaultParameters:
             ('rate', 1.0, ParameterDescriptor()),
             ('frame_id', 'map', ParameterDescriptor()),
             ('utm_transform', False, ParameterDescriptor()),
-            ('utm_offset.lat', Parameter.Type.DOUBLE, ParameterDescriptor()),
-            ('utm_offset.lon', Parameter.Type.DOUBLE, ParameterDescriptor())
+            ('utm.zone', -1, ParameterDescriptor()),
+            ('utm.band', "", ParameterDescriptor()),
+            ('utm.lat', Parameter.Type.DOUBLE, ParameterDescriptor()),
+            ('utm.lon', Parameter.Type.DOUBLE, ParameterDescriptor()),
+            ('utm.lonlat_origin', False, ParameterDescriptor())
         ]
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
@@ -42,8 +51,11 @@ class QueryResultDefaultParameters:
         self._rate = params['rate'].value
         self._frame_id = params['frame_id'].value
         self._utm_transform = params['utm_transform'].value
-        self._utm_offset_lat = params['utm_offset.lat'].value
-        self._utm_offset_lon = params['utm_offset.lon'].value
+        self._utm_zone = params['utm.zone'].value
+        self._utm_band = params['utm.band'].value
+        self._utm_lat = params['utm.lat'].value
+        self._utm_lon = params['utm.lon'].value
+        self._utm_lonlat_origin = params['utm.lonlat_origin'].value
 
     @property
     def rate(self):
@@ -61,14 +73,29 @@ class QueryResultDefaultParameters:
         return self._utm_transform
 
     @property
-    def utm_offset_lat(self):
+    def utm_lat(self):
         """Get utm offset latitude of query result parser."""
-        return self._utm_offset_lat
+        return self._utm_lat
 
     @property
-    def utm_offset_lon(self):
+    def utm_lon(self):
         """Get utm offset longitude of query result parser."""
-        return self._utm_offset_lon
+        return self._utm_lon
+
+    @property
+    def utm_zone(self):
+        """Get utm zone of query result parser."""
+        return self._utm_zone
+
+    @property
+    def utm_band(self):
+        """Get utm band of query result parser."""
+        return self._utm_band
+
+    @property
+    def utm_lonlat_origin(self):
+        """Get utm offset longitude of query result parser."""
+        return self._utm_lonlat_origin
 
 
 class QueryResultParser(ABC):
@@ -97,36 +124,75 @@ class QueryResultParser(ABC):
         return self.TYPE
 
 
-class UTMTransformer:
-    """Transform from lat/lon to utm and optionally apply offset."""
+class GeodesicTransform:
+    """Helper class to transform geodesic coordiantes into local cartesian frame."""
 
-    def __init__(self, offset_lat=None, offset_lon=None) -> None:
-        self.utm_offset_lat = offset_lat
-        self.utm_offset_lon = offset_lon
-        self.utm_offset = True if offset_lat and offset_lon else False
+    def __init__(self, crs_to) -> None:
+        """Initialize GeodesicTransform."""
+        self.map_origin_easting = None
+        self.map_origin_northing = None
+        self.map_transform = False
 
+        crs_from = {"proj": 'latlong', "ellps": 'WGS84', "datum": 'WGS84'}
         self.transformer = Transformer.from_crs(
-            {"proj": 'latlong', "ellps": 'WGS84', "datum": 'WGS84'},
-            # {"proj":'geocent', "ellps":'WGS84', "datum":'WGS84'},
-            {"proj": 'utm', "ellps": 'WGS84', "datum": 'WGS84', "zone": 33},
+            crs_from,
+            crs_to
         )
 
+    @staticmethod
+    def to_utm(zone: int, band: str) -> "GeodesicTransform":
+        """Construct transfromer to UTM from fixed zone and band."""
+        return GeodesicTransform({"proj": 'utm', "ellps": 'WGS84', "datum": 'WGS84', "zone": zone,
+                                  "band": band})
+
+    @staticmethod
+    def to_geocent() -> "GeodesicTransform":
+        """Construct transfromer to geocentric model."""
+        return GeodesicTransform({"proj": 'geocent', "ellps": 'WGS84', "datum": 'WGS84'})
+
+    @staticmethod
+    def to_utm_lonlat(lon: float, lat: float) -> "GeodesicTransform":
+        """Construct transfromer to UTM for given lat/lon."""
+        utm_crs_list = query_utm_crs_info(
+            datum_name="WGS84",
+            area_of_interest=AreaOfInterest(
+                west_lon_degree=lon,
+                south_lat_degree=lat,
+                east_lon_degree=lon,
+                north_lat_degree=lat,
+                ),
+        )
+        utm_crs = CRS.from_epsg(utm_crs_list[0].code)
+        return GeodesicTransform(utm_crs)
+
+    def set_map_origin(self, lon: float, lat: float) -> None:
+        """Set map origin for local cartesian frame."""
         # pylint: disable=unpacking-non-sequence
-        self.utm_offset_x, self.utm_offset_y = self.transformer.transform(
-            self.utm_offset_lat, self.utm_offset_lon, radians=False)
+        easing, northing = self.transformer.transform(lon, lat)
+        self.map_origin_easting = easing
+        self.map_origin_northing = northing
+        self.map_transform = True
+
+    def transform_lonlat(self, lon: float, lat: float):
+        """Transform a point from lat/lon to local map and optionally apply offset."""
+        # pylint: disable=unpacking-non-sequence
+        easting, northing = self.transformer.transform(lon, lat)
+        if self.map_transform:
+            easting -= self.map_origin_easting
+            northing -= self.map_origin_northing
+        return easting, northing
 
     def transform_point(self, point: Point) -> Point:
-        """Transform a point from lat/lon to utm and apply offset if set."""
-        # TODO: handle z # pylint: disable=fixme
+        """Transform a geodetic point to local cartesian frame."""
+        easting, northing = self.transform_lonlat(lon=point.x, lat=point.y)
 
-        # pylint: disable=unpacking-non-sequence
-        point.x, point.y = self.transformer.transform(
-            point.x, point.y, radians=False)
-        if self.utm_offset:
-            point.x -= self.utm_offset_x
-            point.y -= self.utm_offset_y
+        return Point(x=easting, y=northing, z=point.z)
 
-        return point
+    def transform_point32(self, point: Point32) -> Point32:
+        """Transform a geodetic point to local cartesian frame."""
+        easting, northing = self.transform_lonlat(lon=point.x, lat=point.y)
+
+        return Point32(x=easting, y=northing, z=point.z)
 
     def transform(
             self, point: Tuple[SupportsFloat,
@@ -134,17 +200,12 @@ class UTMTransformer:
                                SupportsFloat]) -> Tuple[SupportsFloat,
                                                         SupportsFloat,
                                                         SupportsFloat]:
-        """Transform a point from lat/lon to utm and apply offset if set."""
+        """Transform a geodetic point to local cartesian frame."""
         # TODO: handle z # pylint: disable=fixme
 
-        # pylint: disable=unpacking-non-sequence
-        point_utm = self.transformer.transform(
-            point[0], point[1], 0)
-        if self.utm_offset:
-            # pylint: disable=unsubscriptable-object
-            point_utm = (point_utm[0] - self.utm_offset_x,
-                         point_utm[1] - self.utm_offset_y, point_utm[2])
-        return point_utm
+        easting, northing = self.transform_lonlat(lon=point[0], lat=point[1])
+
+        return (easting, northing, point[2])
 
 
 class StampedTopicParser(QueryResultParser):
@@ -157,8 +218,11 @@ class StampedTopicParser(QueryResultParser):
         self.frame_id = None
         self.topic = None
         self.utm_transform = None
-        self.utm_offset_lat = None
-        self.utm_offset_lon = None
+        self.utm_zone = None
+        self.utm_band = None
+        self.utm_lat = None
+        self.utm_lon = None
+        self.utm_lonlat_origin = None
         self.utm_transformer = None
 
     def declare_params(
@@ -171,8 +235,11 @@ class StampedTopicParser(QueryResultParser):
             ('frame_id', defaults.frame_id, ParameterDescriptor()),
             ('topic', Parameter.Type.STRING, ParameterDescriptor()),
             ('utm_transform', defaults.utm_transform, ParameterDescriptor()),
-            ('utm_offset.lat', defaults.utm_offset_lat, ParameterDescriptor()),
-            ('utm_offset.lon',  defaults.utm_offset_lon, ParameterDescriptor()),
+            ('utm_zone', defaults.utm_zone, ParameterDescriptor()),
+            ('utm_band', defaults.utm_band, ParameterDescriptor()),
+            ('utm.lat', defaults.utm_lat, ParameterDescriptor()),
+            ('utm.lon',  defaults.utm_lon, ParameterDescriptor()),
+            ('utm.lonlat_origin',  defaults.utm_lonlat_origin, ParameterDescriptor()),
         ]
 
     def set_params(self, params: Dict[str, Parameter]) -> Iterable[Tuple[str, Any]]:
@@ -180,12 +247,23 @@ class StampedTopicParser(QueryResultParser):
         self.frame_id = params['frame_id'].value
         self.topic = params['topic'].value
         self.utm_transform = params['utm_transform'].value
-        self.utm_offset_lat = params['utm_offset.lat'].value
-        self.utm_offset_lon = params['utm_offset.lon'].value
-        if self.utm_transform:
-            self.utm_transformer = UTMTransformer(
-                params['utm_offset.lat'].value, params['utm_offset.lon'].value)
+        self.utm_zone = params['utm_zone'].value
+        self.utm_band = params['utm_band'].value
+        self.utm_lat = params['utm.lat'].value
+        self.utm_lon = params['utm.lon'].value
+        self.utm_lonlat_origin = params['utm.lonlat_origin'].value
 
+        if self.utm_transform:
+            if self.utm_zone >= 0 and self.utm_band != "":
+                self.utm_transformer = GeodesicTransform.to_utm(self.utm_zone, self.utm_band)
+            else:
+                if self.utm_lat is None or self.utm_lon is None:
+                    raise ValueError("need lat/lon or zone/band to setup utm transform")
+                self.utm_transformer = GeodesicTransform.to_utm_lonlat(self.utm_lon, self.utm_lat)
+            if self.utm_lonlat_origin:
+                if self.utm_lat is None or self.utm_lon is None:
+                    raise ValueError("utm.lat and utm.lon must be set if utm.lonlat_origin is set")
+                self.utm_transformer.set_map_origin(self.utm_lon, self.utm_lat)
         return []
 
     def get_frame_id(self, elem: Row) -> str:
@@ -317,7 +395,7 @@ class PolygonResultParser(SingleElementParser):
         msg = PostGisConverter.to_polygon(element.geometry)
 
         if self.utm_transform:
-            msg.points = [self.utm_transformer.transform_point(
+            msg.points = [self.utm_transformer.transform_point32(
                 point) for point in msg.points]
 
         return (self.topic, msg)
@@ -343,7 +421,7 @@ class PolygonStampedResultParser(SingleElementParser):
                           stamp=time))
 
         if self.utm_transform:
-            msg.polygon.points = [self.utm_transformer.transform_point(
+            msg.polygon.points = [self.utm_transformer.transform_point32(
                 point) for point in msg.polygon.points]
 
         return (self.topic, msg)

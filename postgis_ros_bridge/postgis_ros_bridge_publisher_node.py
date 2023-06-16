@@ -25,7 +25,7 @@ query_parser: Dict[str, QueryResultParser] = {
         PC2ResultParser,
         MarkerResultParser,
         PolygonResultParser,
-        PolygonStampedResultParser,
+        PolygonStampedResultParser
     ]}
 
 query_parser.update({
