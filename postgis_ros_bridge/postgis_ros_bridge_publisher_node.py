@@ -104,10 +104,13 @@ class PostGisPublisher(Node):
                     for (t, m) in topics_msgs]
             self.converter_pubs.update(pubs)
 
-            self.create_timer(
-                1.0/rate, partial(self.timer_callback, query, parser))
-
             self.get_logger().info(f"Register parser: {str(parser)}")
+
+            if rate > 0:
+                self.create_timer(
+                    1.0/rate, partial(self.timer_callback, query, parser))
+            else:
+                self.timer_callback(query, parser)
 
     def timer_callback(self, query: Query, converter: QueryResultParser):
         """Timer callback for all queries."""

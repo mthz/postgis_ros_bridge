@@ -53,7 +53,7 @@ postgis_ros_publisher:
       marker_ns: "buildings"
       marker_color: [0.0, 1.0, 0.0, 1.0]
       marker_scale: [1.0, 1.0, 1.0]
-      rate: 1.0
+      rate: 0.0 # publish once
 
     query_point: 
       query: "SELECT id, geom AS geometry, 'map' AS frame_id FROM landmark;"
