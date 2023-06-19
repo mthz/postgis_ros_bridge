@@ -3,10 +3,11 @@ from functools import partial
 from typing import Dict
 
 import rclpy
-from geometry_msgs.msg import PoseArray
 from rclpy.node import Node
 from rclpy.publisher import Publisher
+from geometry_msgs.msg import PoseArray, TransformStamped
 from visualization_msgs.msg import MarkerArray
+from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 
 from postgis_ros_bridge.postgresql_connection import PostgreSQLConnection
 from postgis_ros_bridge.query import Query
@@ -16,6 +17,7 @@ from postgis_ros_bridge.query_result_parser import (
     PoseResultParser, PoseStampedResultParser, QueryResultDefaultParameters,
     QueryResultParser)
 
+from postgis_ros_bridge.geodesic_transform import GeodesicTransform
 
 query_parser: Dict[str, QueryResultParser] = {
     q.TYPE: q for q in [
@@ -70,6 +72,9 @@ class PostGisPublisher(Node):
         default_parameters.set_params(
             self.get_parameters_by_prefix(default_section_name))
 
+        self.cartesian_transformer = None
+        self.init_cartesian_transformer()
+
         for config in configurations:
             self.declare_parameters(
                 namespace="",
@@ -97,6 +102,13 @@ class PostGisPublisher(Node):
                         parser.declare_params(default_parameters))))
             topics_msgs = parser.set_params(
                 self.get_parameters_by_prefix(config))
+
+            if parser.geodesic:
+                if self.cartesian_transformer is None:
+                    raise ValueError(
+                        "Geodesic transform is enabled but no cartesian transform is set")
+                parser.set_cartesian_transformer(self.cartesian_transformer)
+
             query = Query(self.postgresql_connection, sql_query)
 
             # TODO: probably sensor data qos or later configurable [fixme]
@@ -111,6 +123,90 @@ class PostGisPublisher(Node):
                     1.0/rate, partial(self.timer_callback, query, parser))
             else:
                 self.timer_callback(query, parser)
+
+    def init_cartesian_transformer(self):
+        """Initialize cartesian transformation."""
+        config = "cartesian_transform"
+        self.declare_parameters(
+            namespace="",
+            parameters=[
+                (f"{config}.type", ""),
+                (f"{config}.utm_zone", -1),
+                (f"{config}.utm_band", ""),
+                (f"{config}.lon", -1000.0),
+                (f"{config}.lat", -1000.0),
+                (f"{config}.inplace", False),
+                (f"{config}.broadcast", False),
+                (f"{config}.world_frame_id", "map"),
+                (f"{config}.cartesian_frame_id", "utm"),
+            ],
+        )
+
+        self.cartesian_transformer = None
+
+        cartesian_type = self.get_parameter(f"{config}.type").value
+        # return if no cartesian transform is set
+        if cartesian_type == "":
+            return
+
+        utm_zone = self.get_parameter(f"{config}.utm_zone").value
+        utm_band = self.get_parameter(f"{config}.utm_band").value
+        inplace = self.get_parameter(f"{config}.inplace").value
+        lon = self.get_parameter(f"{config}.lon").value
+        lat = self.get_parameter(f"{config}.lat").value
+        broadcast = self.get_parameter(f"{config}.broadcast").value
+        world_frame_id = self.get_parameter(f"{config}.world_frame_id").value
+        cartesian_frame_id = self.get_parameter(f"{config}.cartesian_frame_id").value
+
+        if (inplace or broadcast) and (lon == -1000.0 or lat == -1000.0):
+            raise ValueError("lon and lat must be set if inplace or broadcast is True")
+
+        if cartesian_type == "utm":
+            if utm_zone > -1:
+
+                if utm_band == "":
+                    raise ValueError("utm_band is not set")
+
+                self.cartesian_transformer = GeodesicTransform.to_utm(
+                    utm_zone, utm_band, origin_transform=inplace, origin_lon=lon, origin_lat=lat)
+            else:
+
+                if lon == -1000.0 or lat == -1000.0:
+                    raise ValueError("lon and lat must be set if no utm_zone/utm_band is set")
+
+                self.cartesian_transformer = GeodesicTransform.to_utm_lonlat(
+                    lon, lat, origin_transform=inplace)
+
+        else:
+            raise ValueError(
+                f"Type: '{cartesian_type}' is not supported. Supported: utm"
+            )
+
+        if broadcast:
+            if inplace:
+                raise ValueError("inplace and broadcast can not be both True")
+
+            self.tf_static_broadcaster = StaticTransformBroadcaster(self)
+
+            t = TransformStamped()
+
+            t.header.stamp = self.get_clock().now().to_msg()
+            t.header.frame_id = cartesian_frame_id
+            t.child_frame_id = world_frame_id
+
+            easting, northing = self.cartesian_transformer.transform_lonlat(lon, lat)
+            t.transform.translation.x = easting
+            t.transform.translation.y = northing
+            t.transform.translation.z = 0.0
+            # TODO rotation
+            # quat = quaternion_from_euler(
+            #     float(transformation[5]), float(transformation[6]), float(transformation[7]))
+            # t.transform.rotation.x = quat[0]
+            # t.transform.rotation.y = quat[1]
+            # t.transform.rotation.z = quat[2]
+            # t.transform.rotation.w = quat[3]
+
+            self.tf_static_broadcaster.sendTransform(t)
 
     def timer_callback(self, query: Query, converter: QueryResultParser):
         """Timer callback for all queries."""

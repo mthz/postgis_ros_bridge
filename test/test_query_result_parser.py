@@ -13,6 +13,7 @@ from postgis_ros_bridge.query_result_parser import (
     PolygonStampedResultParser, PoseResultParser, PoseStampedResultParser,
     QueryResultDefaultParameters)
 
+
 test_sql_files = {
     'postgis_test':
         'test/sql_data/postgis_test.sql',
@@ -53,9 +54,7 @@ params = {
     'rate': Parameter(name='rate', value=1),
     'frame_id': Parameter(name='frame_id', value='test_frame_id'),
     'topic': Parameter(name='topic', value='test_topic'),
-    'utm_transform': Parameter(name='utm_transform', value=False),
-    'utm_offset.lat': Parameter(name='utm_offset.lat', value=0.0),
-    'utm_offset.lon': Parameter(name='utm_offset.lon', value=0.0),
+    'geodesic': Parameter(name='geodesic', value=False),
 }
 
 
