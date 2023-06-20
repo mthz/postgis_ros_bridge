@@ -5,10 +5,10 @@
   <version>0.0.0</version>
   <description>A library for publishing spatial PostGIS data to ROS.</description>
   <maintainer email="marco.wallner@ait.ac.at">Marco Wallner</maintainer>
+  <license>Apache License 2.0</license>
   <author email="matthias.schoerghuber@ait.ac.at">Matthias Schoerghuber</author>
   <author email="marco.wallner@ait.ac.at">Marco Wallner</author>
   <author email="markus.hofstaetter@ait.ac.at">Markus Hofstaetter</author>
-  <license>Apache License 2.0</license>
 
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>sensor_msgs_py</exec_depend>

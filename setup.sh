@@ -18,7 +18,8 @@ apt-get update \
    libpq-dev \
    && apt-get autoremove -y
 
-# pip install sqlalchemy shapely psycopg2-binary pyproj scipy pytest-postgresql
+python3 setup.py egg_info
+pip3 install -r postgis_ros_bridge.egg-info/requires.txt
 
 rosdep update
 rosdep install --from-paths . --ignore-src -y
