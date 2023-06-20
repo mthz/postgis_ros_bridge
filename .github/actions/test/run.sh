@@ -8,5 +8,5 @@ cp -rpa * .build_ws/src/
 cd .build_ws
 chown postgres:postgres . -R
 su postgres
-./build.sh
-./test.sh
+../build.sh
+../test.sh
