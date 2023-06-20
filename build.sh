@@ -3,6 +3,7 @@ set -e
 
 # Set the default build type
 BUILD_TYPE=RelWithDebInfo
+source /opt/ros/$ROS_DISTRO/setup.bash
 colcon build \
         --merge-install \
         --symlink-install \
