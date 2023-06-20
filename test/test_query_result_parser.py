@@ -1,5 +1,20 @@
+# Copyright 2023 AIT - Austrian Institute of Technology GmbH
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Test the query result parser."""
 import pytest
+import pathlib
 from builtin_interfaces.msg import Time
 from rclpy.parameter import Parameter
 from scipy.spatial.transform import Rotation
@@ -14,10 +29,21 @@ from postgis_ros_bridge.query_result_parser import (
     QueryResultDefaultParameters)
 
 
-test_sql_files = {
-    'postgis_test':
-        'test/sql_data/postgis_test.sql',
-}
+@pytest.fixture(name='testdir')
+def get_testdir(tmpdir, request):
+    """Get test directory for the test module."""
+    filename = request.module.__file__
+    return pathlib.Path(filename).parent
+
+
+@pytest.fixture(name='test_sql_files')
+def get_test_sql_files(testdir):
+    """Get sql test file dict with paths."""
+    sql_files = {
+        'postgis_test':
+            testdir / 'sql_data' / 'postgis_test.sql',
+    }
+    return sql_files
 
 
 @pytest.fixture(name='db_session')
@@ -34,7 +60,7 @@ def setup_db_session(postgresql):
 
 
 @pytest.fixture(name='db_session_test_db')
-def setup_db_session_test_db(db_session):
+def setup_db_session_test_db(db_session, test_sql_files):
     """Fill the database with test data."""
     for sql_file in test_sql_files.values():
         with open(file=sql_file, mode='r', encoding='latin-1') as file:

@@ -3,9 +3,12 @@
 <package format="3">
   <name>postgis_ros_bridge</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="marco.wallner@ait.ac.at">vscode</maintainer>
-  <license>TODO: License declaration</license>
+  <description>A library for publishing spatial PostGIS data to ROS.</description>
+  <maintainer email="marco.wallner@ait.ac.at">Marco Wallner</maintainer>
+  <author email="matthias.schoerghuber@ait.ac.at">Matthias Schoerghuber</author>
+  <author email="marco.wallner@ait.ac.at">Marco Wallner</author>
+  <author email="markus.hofstaetter@ait.ac.at">Markus Hofstaetter</author>
+  <license>Apache License 2.0</license>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

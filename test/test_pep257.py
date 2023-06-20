@@ -1,3 +1,4 @@
+# Copyright 2023 AIT - Austrian Institute of Technology GmbH
 # Copyright 2015 Open Source Robotics Foundation, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ament_pep257.main import main
+from pathlib import Path
+
 import pytest
+from ament_pep257.main import main
 
 
 @pytest.mark.linter
 @pytest.mark.pep257
 def test_pep257():
-    rc = main(argv=['.', 'test'])
-    assert rc == 0, 'Found code style errors / warnings'
+    """Test source code for PEP257 compliance."""
+    pkg_prefix = str(Path(__file__).parents[1])
+    rci = main(argv=[pkg_prefix, 'test'])
+    assert rci == 0, 'Found code style errors / warnings'

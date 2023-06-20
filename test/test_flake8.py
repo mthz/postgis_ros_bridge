@@ -1,3 +1,4 @@
+# Copyright 2023 AIT - Austrian Institute of Technology GmbH
 # Copyright 2017 Open Source Robotics Foundation, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import Path
+
 from ament_flake8.main import main_with_errors
 import pytest
 
@@ -19,7 +22,9 @@ import pytest
 @pytest.mark.flake8
 @pytest.mark.linter
 def test_flake8():
-    rc, errors = main_with_errors(argv=[])
-    assert rc == 0, \
-        'Found %d code style errors / warnings:\n' % len(errors) + \
+    """Test source code for flake8 compliance."""
+    pkg_prefix = str(Path(__file__).parents[1])
+    rci, errors = main_with_errors(argv=[pkg_prefix])
+    assert rci == 0, \
+        f'Found {len(errors)} code style errors / warnings:\n' + \
         '\n'.join(errors)
