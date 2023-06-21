@@ -10,18 +10,16 @@
   </a>
 </p>
 
-<p align="right">
+<p align="center">
   <a href="https://postgis.net">
-        <img height="150" alt="PostGIS" src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Logo_square_postgis.png">
+        <img height="75" alt="PostGIS" src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Logo_square_postgis.png">
   </a>
   <a href="https://ros.org">
-        <img height="150" alt="PostGIS" src="https://upload.wikimedia.org/wikipedia/commons/b/bb/Ros_logo.svg">
+        <img height="75" alt="PostGIS" src="https://upload.wikimedia.org/wikipedia/commons/b/bb/Ros_logo.svg">
   </a>
 </p>
 
 # PostGIS ROS2 Bridge
-
-
 
 ROS2 node connecting a PostgreSQL database with spatial PostGIS data with the ROS world.
 
