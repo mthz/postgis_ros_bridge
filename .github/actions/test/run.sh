@@ -6,7 +6,7 @@ set -e
 mkdir -p .build_ws/src
 cp -rpa * .build_ws/src/
 cd .build_ws
-chown postgres:postgres . -R
-su postgres
-../build.sh
-../test.sh
+mkdir -p build install log
+chown postgres:postgres build install log -R
+su -c ../build.sh postgres
+su -c ../test.sh postgres
