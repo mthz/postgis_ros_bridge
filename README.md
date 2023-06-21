@@ -22,7 +22,7 @@ The publishing node can be started with
 ````bash
 ros2 run postgis_ros_bridge postgis_ros_bridge_publisher_node --ros-args --params-file /PATH_TO/params.yaml
 ````
-The `yaml` file is structured in two fixed sections (postgres and list of publisher), one optional default section, and n=len(list of publish) sections for the queries:
+The `yaml` file is structured in two fixed sections (postgres and list of publisher), one optional default section, and n=len(list of publish) sections for each query.
 
 The `postgresql`-section with username / password (either as plain text or give the name of an environmen variable holding the password), as well as the hostname, port and the schema to be used, e.g,:
 ````yaml
