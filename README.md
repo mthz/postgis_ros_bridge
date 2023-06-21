@@ -46,18 +46,17 @@ This is followed by a list of query publishers, for the example in `cfg/example.
 ````yaml
 publish:
         - query_point
-        - query_marker
-        - query_marker_array
-        - query_pointcloud
         - query_pose
         - query_pose_array
         - query_pose_stamped
         - query_polygon
         - query_polygon_stamped
+        - query_marker
+        - query_marker_array
+        - query_pointcloud
+
 ````
 For each of these list elements, there needs to be a section with parameters, depending on the type of desired message beeing published.
-
-## Supported ROS2 Messages
 
 The publisher(s) are set up in the defined sections from above. Every section has at least a SQL query that contains a column `geometry`.
 Depending on the targeted message type, there is also a special column `rotation`, `frame_id`, and `id`.
@@ -67,6 +66,22 @@ query_defaults:
         rate: 10.0
         frame_id: "map"
 ````
+
+## Supported ROS2 Messages
+* `geometry_msgs`
+  * `PointStamped`
+  * `Pose`
+  * `PoseArray`
+  * `PoseStamped`
+  * `Polygon`
+  * `PolygonStamped`
+* `visualization_msgs`
+  * `Marker`
+* `sensor_msgs`
+  * `PointCloud2`
+
+A simple example of to configure each type is listed in the following sections.
+
 
 ### geometry_msgs/msg/PointStamped [(ROS2 Reference)](https://docs.ros2.org/latest/api/geometry_msgs/msg/PointStamped.html)
 ````yaml
@@ -78,6 +93,53 @@ query_point:
 This is a simple example to query the `position` column from a table called `landmark` and rename it to the defined `geometry` keyword.
 The frame id is set static for all points to `test_frame_id`. This valued could be fetched from the database as well using a more advanced query. The type is set using the `type` parameter, and the topic to publish the result as `topic`.
 The parameters set in the query_defaults (`rate` and `frame_id`) could be set as all here to overwrite the defaults.
+
+### geometry_msgs/msg/Pose [(ROS2 Reference)](https://docs.ros2.org/latest/api/geometry_msgs/msg/Pose.html)
+````yaml
+query_pose:
+        query: "SELECT pose.position AS geometry, pose.rotation_vector AS rotation FROM pose;"
+        type: "Pose"
+        topic: "pose"
+````
+Query pose (x,y,z) in column `geometry` and rotation in column `rotation` as scaled euler rotation (see [scipy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Rotation.html)) in (roll, pitch, yaw). Each row of the query result is published as `Pose`.
+
+### geometry_msgs/msg/PoseArray [(ROS2 Reference)](https://docs.ros2.org/latest/api/geometry_msgs/msg/PoseArray.html)
+````yaml
+query_pose_array:
+        query: "SELECT pose.position AS geometry, pose.rotation_vector AS rotation FROM pose;"
+        type: "PoseArray"
+        topic: "pose_array"
+        frame_id: "test_frame_id"
+````
+Query pose (x,y,z) in column `geometry` and rotation in column `rotation` as scaled euler rotation (see [scipy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Rotation.html)) in (roll, pitch, yaw). All poses of one query result are published as `PoseArray`.
+
+### geometry_msgs/msg/PoseStamped [(ROS2 Reference)](https://docs.ros2.org/latest/api/geometry_msgs/msg/PoseStamped.html)
+````yaml
+query_pose_stamped:
+        query: "SELECT pose.position AS geometry, pose.rotation_vector AS rotation, 'test_frame_id' AS frame_id FROM pose;"
+        type: "PoseStamped"
+        topic: "pose_stamped"
+````
+Query pose (x,y,z) in column `geometry` and rotation in column `rotation` as scaled euler rotation (see [scipy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Rotation.html)) in (roll, pitch, yaw). Each row of the query result is published as `PoseStamped` with frame id and timestamp.
+
+### geometry_msgs/msg/Polygon [(ROS2 Reference)](https://docs.ros2.org/latest/api/geometry_msgs/msg/Polygon.html)
+````yaml
+query_polygon:
+        query: "SELECT ST_MakePolygon( 'LINESTRING(0 0, 5 5, 7.7 10, -1.0 10.0, 0 0)') AS geometry, 'test' AS frame_id;"
+        type: "Polygon"
+        topic: "polygon"
+````
+Simple example of a 2D PostGIS polygon (could be fetched from a table too; 3D is also supported). The resulting geometry is published as `Polygon`.
+
+### geometry_msgs/msg/PolygonStamped [(ROS2 Reference)](https://docs.ros2.org/latest/api/geometry_msgs/msg/PolygonStamped.html)
+````yaml
+query_polygon_stamped:
+        query: "SELECT ST_MakePolygon( 'LINESTRING(0 0 0, 5 5 1, 7.7 10 1, -1.0 10.0 0, 0 0 0)') AS geometry, 'test' AS frame_id;"
+        type: "PolygonStamped"
+        topic: "polygon_stamped"
+        frame_id: "test_frame_id"
+````
+Simple example of a 3D PostGIS polygon (could be fetched from a table too; 2D is also supported). The resulting geometry is published as `PolygonStamped` with frame id and timestamp.
 
 ### visualization_msgs/msg/Marker [(ROS2 Reference)](https://docs.ros2.org/galactic/api/visualization_msgs/msg/Marker.html)
 ````yaml
@@ -111,53 +173,6 @@ query_pointcloud:
         rate: 1.0
 ````
 Minimal query to fetch points to be published as pointcloud2. The `rate` parameter overwrites the default value.
-
-### sensor_msgs/msg/Pose [(ROS2 Reference)](https://docs.ros2.org/latest/api/geometry_msgs/msg/Pose.html)
-````yaml
-query_pose:
-        query: "SELECT pose.position AS geometry, pose.rotation_vector AS rotation FROM pose;"
-        type: "Pose"
-        topic: "pose"
-````
-Query pose (x,y,z) in column `geometry` and rotation in column `rotation` as scaled euler rotation (see [scipy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Rotation.html)) in (roll, pitch, yaw). Each row of the query result is published as `Pose`.
-
-### sensor_msgs/msg/PoseArray [(ROS2 Reference)](https://docs.ros2.org/latest/api/geometry_msgs/msg/PoseArray.html)
-````yaml
-query_pose_array:
-        query: "SELECT pose.position AS geometry, pose.rotation_vector AS rotation FROM pose;"
-        type: "PoseArray"
-        topic: "pose_array"
-        frame_id: "test_frame_id"
-````
-Query pose (x,y,z) in column `geometry` and rotation in column `rotation` as scaled euler rotation (see [scipy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Rotation.html)) in (roll, pitch, yaw). All poses of one query result are published as `PoseArray`.
-
-### sensor_msgs/msg/PoseStamped [(ROS2 Reference)](https://docs.ros2.org/latest/api/geometry_msgs/msg/PoseStamped.html)
-````yaml
-query_pose_stamped:
-        query: "SELECT pose.position AS geometry, pose.rotation_vector AS rotation, 'test_frame_id' AS frame_id FROM pose;"
-        type: "PoseStamped"
-        topic: "pose_stamped"
-````
-Query pose (x,y,z) in column `geometry` and rotation in column `rotation` as scaled euler rotation (see [scipy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Rotation.html)) in (roll, pitch, yaw). Each row of the query result is published as `PoseStamped` with frame id and timestamp.
-
-### sensor_msgs/msg/Polygon [(ROS2 Reference)](https://docs.ros2.org/latest/api/geometry_msgs/msg/Polygon.html)
-````yaml
-query_polygon:
-        query: "SELECT ST_MakePolygon( 'LINESTRING(0 0, 5 5, 7.7 10, -1.0 10.0, 0 0)') AS geometry, 'test' AS frame_id;"
-        type: "Polygon"
-        topic: "polygon"
-````
-Simple example of a 2D PostGIS polygon (could be fetched from a table too; 3D is also supported). The resulting geometry is published as `Polygon`.
-
-### sensor_msgs/msg/PolygonStamped [(ROS2 Reference)](https://docs.ros2.org/latest/api/geometry_msgs/msg/PolygonStamped.html)
-````yaml
-query_polygon_stamped:
-        query: "SELECT ST_MakePolygon( 'LINESTRING(0 0 0, 5 5 1, 7.7 10 1, -1.0 10.0 0, 0 0 0)') AS geometry, 'test' AS frame_id;"
-        type: "PolygonStamped"
-        topic: "polygon_stamped"
-        frame_id: "test_frame_id"
-````
-Simple example of a 3D PostGIS polygon (could be fetched from a table too; 2D is also supported). The resulting geometry is published as `PolygonStamped` with frame id and timestamp.
 
 
 # Funding
