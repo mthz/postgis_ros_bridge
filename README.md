@@ -1,3 +1,16 @@
+<p align="center">
+  <a href="https://github.com/steven-tey/novel/blob/main/LICENSE">
+        <img alt="GitHub" src="https://img.shields.io/github/license/wallner90/postgis_ros_bridge">
+  </a>
+  <a href="https://github.com/wallner90/postgis_ros_bridge/actions/workflows/ros.yaml">
+        <img alt="GitHub Workflow Status (with event)" src="https://img.shields.io/github/actions/workflow/status/wallner90/postgis_ros_bridge/ros.yaml?label=build%20%26%20test">
+  </a>
+  <a href="https://github.com/wallner90/postgis_ros_bridge/issues">
+      <img alt="GitHub issues" src="https://img.shields.io/github/issues/wallner90/postgis_ros_bridge">  
+  </a>
+</p>
+
+
 # PostGIS ROS2 Bridge
 
 ROS2 node connecting a PostgreSQL database with spatial PostGIS data with the ROS world.
