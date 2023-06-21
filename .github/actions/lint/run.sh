@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
 
-./setup.sh
+./.github/setup.sh
 source /opt/ros/${ROS_DISTRO}/setup.bash
 ament_${LINTER} ./
