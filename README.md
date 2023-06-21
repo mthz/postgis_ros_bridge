@@ -40,7 +40,7 @@ postgresql:
         pass: "postgres" # Alternative to pass_env (store password in plaintext (not recommended))
         host: "localhost" 
         port: 5432
-        schema: "postgres_alchemy_ait"
+        schema: "example_schema"
 ````
 This is followed by a list of query publishers, for the example in `cfg/example.yaml`:
 ````yaml
