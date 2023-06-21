@@ -21,7 +21,7 @@
 
 # PostGIS ROS2 Bridge
 
-ROS2 node connecting a PostgreSQL database with spatial PostGIS data with the ROS world.
+ROS2 node connecting PostgreSQL databases containing spatial PostGIS data with the ROS world.
 
 ## Basic Usage
 
@@ -66,6 +66,9 @@ query_defaults:
         rate: 10.0
         frame_id: "map"
 ````
+
+## (TODO) UTM Transformer
+Lorem Ipsum... 
 
 ## Supported ROS2 Messages
 * `geometry_msgs`
