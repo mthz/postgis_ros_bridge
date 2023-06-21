@@ -2,5 +2,5 @@ name: 'Lint'
 description: 'Lint using devcontainer'
 runs:
   using: 'docker'
-  image: 'osrf/ros2:testing'
+  image: 'ros:humble-ros-base-jammy'
   entrypoint: ".github/actions/lint/run.sh"

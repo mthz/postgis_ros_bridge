@@ -2,5 +2,5 @@ name: 'Test'
 description: 'Test using devcontainer'
 runs:
   using: 'docker'
-  image: 'osrf/ros2:testing'
+  image: 'ros:humble-ros-base-jammy'
   entrypoint: ".github/actions/test/run.sh"
