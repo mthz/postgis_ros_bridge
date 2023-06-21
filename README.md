@@ -10,8 +10,18 @@
   </a>
 </p>
 
+<p align="right">
+  <a href="https://postgis.net">
+        <img height="150" alt="PostGIS" src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Logo_square_postgis.png">
+  </a>
+  <a href="https://ros.org">
+        <img height="150" alt="PostGIS" src="https://upload.wikimedia.org/wikipedia/commons/b/bb/Ros_logo.svg">
+  </a>
+</p>
 
 # PostGIS ROS2 Bridge
+
+
 
 ROS2 node connecting a PostgreSQL database with spatial PostGIS data with the ROS world.
 
@@ -150,3 +160,13 @@ query_polygon_stamped:
         frame_id: "test_frame_id"
 ````
 Simple example of a 3D PostGIS polygon (could be fetched from a table too; 2D is also supported). The resulting geometry is published as `PolygonStamped` with frame id and timestamp.
+
+
+# Funding
+[DE] Die FFG ist die zentrale nationale Förderorganisation und stärkt Österreichs Innovationskraft. Dieses Projekt wird aus Mitteln der FFG gefördert. 
+
+[EN] FFG is the central national funding organization and strengthens Austria's innovative power. This project is funded by the FFG. 
+
+[www.ffg.at](www.ffg.at)
+
+Projekt: [openSCHEMA](https://iktderzukunft.at/de/projekte/open-semantic-collaborative-hierarchical-environment-mapping.php)
