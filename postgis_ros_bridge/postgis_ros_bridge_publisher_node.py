@@ -150,7 +150,7 @@ class PostGisPublisher(Node):
                 (f"{config}.lon", -1000.0),
                 (f"{config}.lat", -1000.0),
                 (f"{config}.inplace", False),
-                (f"{config}.broadcast", False),
+                (f"{config}.broadcast_cartesian_transform", False),
                 (f"{config}.world_frame_id", "map"),
                 (f"{config}.cartesian_frame_id", "utm"),
             ],
@@ -168,7 +168,7 @@ class PostGisPublisher(Node):
         inplace = self.get_parameter(f"{config}.inplace").value
         lon = self.get_parameter(f"{config}.lon").value
         lat = self.get_parameter(f"{config}.lat").value
-        broadcast = self.get_parameter(f"{config}.broadcast").value
+        broadcast = self.get_parameter(f"{config}.broadcast_cartesian_transform").value
         world_frame_id = self.get_parameter(f"{config}.world_frame_id").value
         cartesian_frame_id = self.get_parameter(f"{config}.cartesian_frame_id").value
 

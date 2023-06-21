@@ -1,0 +1,9 @@
+site_name: postgis_ros_bridge
+site_url: https://example.com/
+theme: readthedocs
+
+plugins:
+- simple
+
+markdown_extensions:
+  - admonition

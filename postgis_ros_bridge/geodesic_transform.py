@@ -73,7 +73,7 @@ class GeodesicTransform:
         utm_crs = CRS.from_epsg(utm_crs_list[0].code)
         return GeodesicTransform(utm_crs, **kwargs, origin_lat=lat, origin_lon=lon)
 
-    def transform_lonlat(self, lon: float, lat: float, ret_gamma:bool = False):
+    def transform_lonlat(self, lon: float, lat: float, ret_gamma: bool = False):
         """Transform a point from lat/lon to local map and optionally apply offset."""
         # pylint: disable=unpacking-non-sequence
         easting, northing = self.transformer.transform(lon, lat)
@@ -84,9 +84,8 @@ class GeodesicTransform:
         if ret_gamma:
             factors = self.proj.get_factors(lon, lat)
             return easting, northing, factors.meridian_convergence
-        
+
         return easting, northing
-    
 
     def transform_point(self, point: Point) -> Point:
         """Transform a geodetic point to local cartesian frame."""
