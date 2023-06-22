@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="None" /><link rel="canonical" href="https://example.com/" />
+      <link rel="shortcut icon" href="img/favicon.ico" />
+    <title>postgis_ros_bridge</title>
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Home";
+        var mkdocs_page_input_path = "README.md";
+        var mkdocs_page_url = "/";
+      </script>
+    
+    <script src="js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="." class="icon icon-home"> postgis_ros_bridge
+        </a>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href=".">Home</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#basic-usage">Basic Usage</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#todo-utm-transformer">(TODO) UTM Transformer</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#supported-ros2-messages">Supported ROS2 Messages</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#geometry_msgsmsgpointstamped-ros2-reference">geometry_msgs/msg/PointStamped (ROS2 Reference)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#geometry_msgsmsgpose-ros2-reference">geometry_msgs/msg/Pose (ROS2 Reference)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#geometry_msgsmsgposearray-ros2-reference">geometry_msgs/msg/PoseArray (ROS2 Reference)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#geometry_msgsmsgposestamped-ros2-reference">geometry_msgs/msg/PoseStamped (ROS2 Reference)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#geometry_msgsmsgpolygon-ros2-reference">geometry_msgs/msg/Polygon (ROS2 Reference)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#geometry_msgsmsgpolygonstamped-ros2-reference">geometry_msgs/msg/PolygonStamped (ROS2 Reference)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#visualization_msgsmsgmarker-ros2-reference">visualization_msgs/msg/Marker (ROS2 Reference)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#visualization_msgsmsgmarkerarray-ros2-reference">visualization_msgs/msg/MarkerArray (ROS2 Reference)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#sensor_mgsgmsgpointcloud2-ros2-reference">sensor_mgsg/msg/PointCloud2 (ROS2 Reference)</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING/">CONTRIBUTING</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="LICENSE/">LICENSE</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="geodesic/">Geodesic Coordinates</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Test</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Postgres server</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="test/postgres_server/">restore database</a>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href=".">postgis_ros_bridge</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="." class="icon icon-home" aria-label="Docs"></a> &raquo;</li>
+      <li>Home</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <p align="center">
+  <a href="https://github.com/steven-tey/novel/blob/main/LICENSE">
+        <img alt="GitHub" src="https://img.shields.io/github/license/wallner90/postgis_ros_bridge">
+  </a>
+  <a href="https://github.com/wallner90/postgis_ros_bridge/actions/workflows/ros.yaml">
+        <img alt="GitHub Workflow Status (with event)" src="https://img.shields.io/github/actions/workflow/status/wallner90/postgis_ros_bridge/ros.yaml?label=build%20%26%20test">
+  </a>
+  <a href="https://github.com/wallner90/postgis_ros_bridge/issues">
+      <img alt="GitHub issues" src="https://img.shields.io/github/issues/wallner90/postgis_ros_bridge">  
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://postgis.net">
+        <img height="75" alt="PostGIS" src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Logo_square_postgis.png">
+  </a>
+  <a href="https://ros.org">
+        <img height="75" alt="PostGIS" src="https://upload.wikimedia.org/wikipedia/commons/b/bb/Ros_logo.svg">
+  </a>
+</p>
+
+<h1 id="postgis-ros2-bridge">PostGIS ROS2 Bridge</h1>
+<p>ROS2 node connecting PostgreSQL databases containing spatial PostGIS data with the ROS world.</p>
+<h2 id="basic-usage">Basic Usage</h2>
+<p>The publishing node can be started with</p>
+<pre><code class="language-bash">ros2 run postgis_ros_bridge postgis_ros_bridge_publisher_node --ros-args --params-file /PATH_TO/params.yaml
+</code></pre>
+<p>The <code>yaml</code> file is structured in two fixed sections (postgres and list of publisher), one optional default section, and n=len(list of publish) sections for each query.</p>
+<p>The <code>postgresql</code>-section with username / password (either as plain text or give the name of an environmen variable holding the password), as well as the hostname, port and the schema to be used:</p>
+<pre><code class="language-yaml">postgresql:
+        user: &quot;postgres&quot;
+        pass_env: &quot;POSTGRES_PASSWORD&quot; # read password from environment variable (recommended)
+        pass: &quot;postgres&quot; # Alternative to pass_env (store password in plaintext (not recommended))
+        host: &quot;localhost&quot; 
+        port: 5432
+        schema: &quot;example_schema&quot;
+</code></pre>
+<p>This is followed by a list of query publishers, for the example in <code>cfg/example.yaml</code>:</p>
+<pre><code class="language-yaml">publish:
+        - query_point
+        - query_pose
+        - query_pose_array
+        - query_pose_stamped
+        - query_polygon
+        - query_polygon_stamped
+        - query_marker
+        - query_marker_array
+        - query_pointcloud
+
+</code></pre>
+<p>For each of these list elements, there needs to be a section with parameters, depending on the type of desired message beeing published.</p>
+<p>The publisher(s) are set up in the defined sections from above. Every section has at least a SQL query that contains a column <code>geometry</code>.
+Depending on the targeted message type, there is also a special column <code>rotation</code>, <code>frame_id</code>, and <code>id</code>.
+Parameters for all sections can be set in a <code>query_defaults</code> section, e.g.:</p>
+<pre><code class="language-yaml">query_defaults:
+        rate: 10.0
+        frame_id: &quot;map&quot;
+</code></pre>
+<h2 id="todo-utm-transformer">(TODO) UTM Transformer</h2>
+<p>Lorem Ipsum... </p>
+<h2 id="supported-ros2-messages">Supported ROS2 Messages</h2>
+<ul>
+<li><code>geometry_msgs</code></li>
+<li><code>PointStamped</code></li>
+<li><code>Pose</code></li>
+<li><code>PoseArray</code></li>
+<li><code>PoseStamped</code></li>
+<li><code>Polygon</code></li>
+<li><code>PolygonStamped</code></li>
+<li><code>visualization_msgs</code></li>
+<li><code>Marker</code></li>
+<li><code>sensor_msgs</code></li>
+<li><code>PointCloud2</code></li>
+</ul>
+<p>A simple example of to configure each type is listed in the following sections.</p>
+<h3 id="geometry_msgsmsgpointstamped-ros2-reference">geometry_msgs/msg/PointStamped <a href="https://docs.ros2.org/latest/api/geometry_msgs/msg/PointStamped.html">(ROS2 Reference)</a></h3>
+<pre><code class="language-yaml">query_point:
+        query: &quot;SELECT position AS geometry, 'test_frame_id' AS frame_id FROM landmark;&quot;
+        type: &quot;PointStamped&quot; 
+        topic: &quot;point&quot;
+</code></pre>
+<p>This is a simple example to query the <code>position</code> column from a table called <code>landmark</code> and rename it to the defined <code>geometry</code> keyword.
+The frame id is set static for all points to <code>test_frame_id</code>. This valued could be fetched from the database as well using a more advanced query. The type is set using the <code>type</code> parameter, and the topic to publish the result as <code>topic</code>.
+The parameters set in the query_defaults (<code>rate</code> and <code>frame_id</code>) could be set as all here to overwrite the defaults.</p>
+<h3 id="geometry_msgsmsgpose-ros2-reference">geometry_msgs/msg/Pose <a href="https://docs.ros2.org/latest/api/geometry_msgs/msg/Pose.html">(ROS2 Reference)</a></h3>
+<pre><code class="language-yaml">query_pose:
+        query: &quot;SELECT pose.position AS geometry, pose.rotation_vector AS rotation FROM pose;&quot;
+        type: &quot;Pose&quot;
+        topic: &quot;pose&quot;
+</code></pre>
+<p>Query pose (x,y,z) in column <code>geometry</code> and rotation in column <code>rotation</code> as scaled euler rotation (see <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Rotation.html">scipy</a>) in (roll, pitch, yaw). Each row of the query result is published as <code>Pose</code>.</p>
+<h3 id="geometry_msgsmsgposearray-ros2-reference">geometry_msgs/msg/PoseArray <a href="https://docs.ros2.org/latest/api/geometry_msgs/msg/PoseArray.html">(ROS2 Reference)</a></h3>
+<pre><code class="language-yaml">query_pose_array:
+        query: &quot;SELECT pose.position AS geometry, pose.rotation_vector AS rotation FROM pose;&quot;
+        type: &quot;PoseArray&quot;
+        topic: &quot;pose_array&quot;
+        frame_id: &quot;test_frame_id&quot;
+</code></pre>
+<p>Query pose (x,y,z) in column <code>geometry</code> and rotation in column <code>rotation</code> as scaled euler rotation (see <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Rotation.html">scipy</a>) in (roll, pitch, yaw). All poses of one query result are published as <code>PoseArray</code>.</p>
+<h3 id="geometry_msgsmsgposestamped-ros2-reference">geometry_msgs/msg/PoseStamped <a href="https://docs.ros2.org/latest/api/geometry_msgs/msg/PoseStamped.html">(ROS2 Reference)</a></h3>
+<pre><code class="language-yaml">query_pose_stamped:
+        query: &quot;SELECT pose.position AS geometry, pose.rotation_vector AS rotation, 'test_frame_id' AS frame_id FROM pose;&quot;
+        type: &quot;PoseStamped&quot;
+        topic: &quot;pose_stamped&quot;
+</code></pre>
+<p>Query pose (x,y,z) in column <code>geometry</code> and rotation in column <code>rotation</code> as scaled euler rotation (see <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Rotation.html">scipy</a>) in (roll, pitch, yaw). Each row of the query result is published as <code>PoseStamped</code> with frame id and timestamp.</p>
+<h3 id="geometry_msgsmsgpolygon-ros2-reference">geometry_msgs/msg/Polygon <a href="https://docs.ros2.org/latest/api/geometry_msgs/msg/Polygon.html">(ROS2 Reference)</a></h3>
+<pre><code class="language-yaml">query_polygon:
+        query: &quot;SELECT ST_MakePolygon( 'LINESTRING(0 0, 5 5, 7.7 10, -1.0 10.0, 0 0)') AS geometry, 'test' AS frame_id;&quot;
+        type: &quot;Polygon&quot;
+        topic: &quot;polygon&quot;
+</code></pre>
+<p>Simple example of a 2D PostGIS polygon (could be fetched from a table too; 3D is also supported). The resulting geometry is published as <code>Polygon</code>.</p>
+<h3 id="geometry_msgsmsgpolygonstamped-ros2-reference">geometry_msgs/msg/PolygonStamped <a href="https://docs.ros2.org/latest/api/geometry_msgs/msg/PolygonStamped.html">(ROS2 Reference)</a></h3>
+<pre><code class="language-yaml">query_polygon_stamped:
+        query: &quot;SELECT ST_MakePolygon( 'LINESTRING(0 0 0, 5 5 1, 7.7 10 1, -1.0 10.0 0, 0 0 0)') AS geometry, 'test' AS frame_id;&quot;
+        type: &quot;PolygonStamped&quot;
+        topic: &quot;polygon_stamped&quot;
+        frame_id: &quot;test_frame_id&quot;
+</code></pre>
+<p>Simple example of a 3D PostGIS polygon (could be fetched from a table too; 2D is also supported). The resulting geometry is published as <code>PolygonStamped</code> with frame id and timestamp.</p>
+<h3 id="visualization_msgsmsgmarker-ros2-reference">visualization_msgs/msg/Marker <a href="https://docs.ros2.org/galactic/api/visualization_msgs/msg/Marker.html">(ROS2 Reference)</a></h3>
+<pre><code class="language-yaml">query_marker:
+        query: &quot;SELECT ROW_NUMBER() OVER (ORDER BY pose.id) AS id, pose.position AS geometry, pose.rotation_vector AS rotation, test_frame_id' AS frame_id FROM pose;&quot;
+        type: &quot;Marker&quot;
+        marker_type: &quot;visualization_msgs::Marker::SPHERE&quot; # marker_type or here | default sphere
+        topic: &quot;marker&quot;
+</code></pre>
+<p>Example of a marker message generation. As PostGIS does not support 6DoF poses, additionally to the <code>geometry</code> column containing the position (x,y,z) of the marker, a second column <code>rotation</code> is needed. This column is expected to hold the rotation as scaled euler rotation (see <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Rotation.html">scipy</a>) in (roll, pitch, yaw). The <code>id</code> field of the ROS2 marker message can be filled for each row using the <code>id</code> column.
+Implemented marker_types are <code>ARROW</code>, <code>CUBE</code>, <code>SPHERE</code>, and  <code>CYLINDER</code> (list of supported types can be extended easily in code, see <code>postgis_ros_bridge/query_result_parser.py</code>).</p>
+<h3 id="visualization_msgsmsgmarkerarray-ros2-reference">visualization_msgs/msg/MarkerArray <a href="https://docs.ros2.org/galactic/api/visualization_msgs/msg/MarkerArray.html">(ROS2 Reference)</a></h3>
+<pre><code class="language-yaml">query_marker_array:
+        query: &quot;SELECT ROW_NUMBER() OVER (ORDER BY pose.id) AS id, pose.position AS geometry, pose.rotation_vector AS rotation FROM pose;&quot;
+        type: &quot;MarkerArray&quot;
+        marker_type: &quot;visualization_msgs::Marker::SPHERE&quot; 
+        topic: &quot;marker_array&quot;
+        frame_id: &quot;test_frame_id&quot;
+</code></pre>
+<p>For suitable message types, there is also the <code>Array</code> version implemented. For this example, the type is simply set to <code>MarkerArray</code>. In this example, the <code>frame_id</code> is set in the parameter section. It is also possible to define the <code>frame_id</code> in the query itself or as here, in the defaults. Query result overwrite the value set in the query section, and this parameter overwrites one in the defaults section, i.e. query result -&gt; parameter section -&gt; default value.</p>
+<h3 id="sensor_mgsgmsgpointcloud2-ros2-reference">sensor_mgsg/msg/PointCloud2 <a href="https://docs.ros2.org/latest/api/sensor_msgs/msg/PointCloud2.html">(ROS2 Reference)</a></h3>
+<pre><code class="language-yaml">query_pointcloud:
+        query: &quot;SELECT position AS geometry FROM landmark;&quot;
+        type: &quot;PointCloud2&quot;
+        frame_id: &quot;test_frame_id&quot;
+        topic: &quot;pointcloud&quot;
+        rate: 1.0
+</code></pre>
+<p>Minimal query to fetch points to be published as pointcloud2. The <code>rate</code> parameter overwrites the default value.</p>
+<h1 id="funding">Funding</h1>
+<p>[DE] Die FFG ist die zentrale nationale Förderorganisation und stärkt Österreichs Innovationskraft. Dieses Projekt wird aus Mitteln der FFG gefördert. </p>
+<p>[EN] FFG is the central national funding organization and strengthens Austria's innovative power. This project is funded by the FFG. </p>
+<p><a href="www.ffg.at">www.ffg.at</a></p>
+<p>Projekt: <a href="https://iktderzukunft.at/de/projekte/open-semantic-collaborative-hierarchical-environment-mapping.php">openSCHEMA</a></p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="CONTRIBUTING/" class="btn btn-neutral float-right" title="CONTRIBUTING">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+      <span><a href="CONTRIBUTING/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '.';</script>
+    <script src="js/theme_extra.js" defer></script>
+    <script src="js/theme.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
+
+<!--
+MkDocs version : 1.4.3
+Build Date UTC : 2023-06-22 08:30:09.472436+00:00
+-->
